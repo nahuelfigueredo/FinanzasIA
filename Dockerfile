@@ -1,9 +1,8 @@
 # Build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY FinanzasIA.Api/FinanzasIA.Api.csproj FinanzasIA.Api/
+COPY . .
 RUN dotnet restore FinanzasIA.Api/FinanzasIA.Api.csproj
-COPY FinanzasIA.Api/ FinanzasIA.Api/
 RUN dotnet publish FinanzasIA.Api/FinanzasIA.Api.csproj -c Release -o /app/publish
 
 # Runtime
