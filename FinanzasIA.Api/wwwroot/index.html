@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FinanzasIA</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #1f2937; }
+    header { background: #111827; color: white; padding: 24px; }
+    main { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .card, form, table { background: white; border-radius: 12px; box-shadow: 0 2px 8px #0001; }
+    .card { padding: 20px; }
+    .card span { display: block; color: #6b7280; font-size: 14px; }
+    .card strong { font-size: 28px; }
+    form { padding: 20px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+    input, select, button { padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+    button { background: #2563eb; color: white; border: none; cursor: pointer; }
+    button.delete { background: #dc2626; }
+    table { width: 100%; border-collapse: collapse; overflow: hidden; }
+    th, td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f9fafb; }
+    .ingreso { color: #059669; font-weight: bold; }
+    .egreso { color: #dc2626; font-weight: bold; }
+    @media (max-width: 800px) { .cards, form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header style="display:flex;align-items:center;gap:16px;">
+    <img src="logo.png" alt="FinanzasIA" width="64" height="64" style="border-radius:14px;"
+         onerror="this.style.display='none'">
+    <div>
+      <h1 style="margin:0;">FinanzasIA</h1>
+      <p style="margin:4px 0 0;">Control simple de ingresos y egresos</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="cards">
+      <div class="card"><span>Ingresos</span><strong id="ingresos">$0</strong></div>
+      <div class="card"><span>Egresos</span><strong id="egresos">$0</strong></div>
+      <div class="card"><span>Balance</span><strong id="balance">$0</strong></div>
+    </section>
+
+    <form id="formMovimiento">
+      <input id="descripcion" placeholder="Descripción" required>
+      <input id="monto" type="number" min="1" step="0.01" placeholder="Monto" required>
+      <input id="fecha" type="date">
+      <select id="tipo">
+        <option>Ingreso</option>
+        <option>Egreso</option>
+      </select>
+      <input id="categoria" placeholder="Categoría" required>
+      <button type="submit">Agregar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Descripción</th>
+          <th>Categoría</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tablaMovimientos"></tbody>
+    </table>
+  </main>
+
+  <script>
+    const api = '';
+    const formato = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+    async function cargar() {
+      const [movimientosRes, resumenRes] = await Promise.all([
+        fetch(`${api}/api/movimientos`),
+        fetch(`${api}/api/resumen`)
+      ]);
+
+      const movimientos = await movimientosRes.json();
+      const resumen = await resumenRes.json();
+
+      document.getElementById('ingresos').textContent = formato.format(resumen.ingresos);
+      document.getElementById('egresos').textContent = formato.format(resumen.egresos);
+      document.getElementById('balance').textContent = formato.format(resumen.balance);
+
+      const tbody = document.getElementById('tablaMovimientos');
+      tbody.innerHTML = '';
+
+      movimientos.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${new Date(m.fecha).toLocaleDateString('es-AR')}</td>
+          <td>${m.descripcion}</td>
+          <td>${m.categoria}</td>
+          <td class="${m.tipo.toLowerCase()}">${m.tipo}</td>
+          <td>${formato.format(m.monto)}</td>
+          <td><button class="delete" onclick="eliminar(${m.id})">Eliminar</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function eliminar(id) {
+      await fetch(`${api}/api/movimientos/${id}`, { method: 'DELETE' });
+      await cargar();
+    }
+
+    document.getElementById('formMovimiento').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const movimiento = {
+        descripcion: document.getElementById('descripcion').value,
+        monto: Number(document.getElementById('monto').value),
+        fecha: document.getElementById('fecha').value || new Date().toISOString(),
+        tipo: document.getElementById('tipo').value,
+        categoria: document.getElementById('categoria').value
+      };
+
+      const response = await fetch(`${api}/api/movimientos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(movimiento)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'No se pudo guardar el movimiento');
+        return;
+      }
+
+      event.target.reset();
+      await cargar();
+    });
+
+    cargar();
+  </script>
+</body>
+</html>

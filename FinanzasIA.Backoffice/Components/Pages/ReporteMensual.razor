@@ -1,0 +1,196 @@
+@page "/reporte-mensual"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Reporte mensual</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">📅</span>
+    <div>
+        <h1>Reporte mensual</h1>
+        <p>Cierre visual del mes actual con balance, top categorías y resumen de actividad.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <div class="report-loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span>Preparando reporte...</span>
+    </div>
+}
+else
+{
+    <section class="monthly-cover mb-4">
+        <div>
+            <span>@DateTime.Today.ToString("MMMM yyyy")</span>
+            <h2>@MonthlyBalance.ToString("C")</h2>
+            <p>Balance del mes</p>
+        </div>
+        <div class="monthly-score @ScoreClass">
+            <strong>@ScoreText</strong>
+            <span>@CurrentMonthMovements.Count movimientos</span>
+        </div>
+    </section>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="metric-card income">
+                <div class="metric-symbol">💰</div>
+                <span>Ingresos del mes</span>
+                <strong>@MonthlyIncome.ToString("C")</strong>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card expense">
+                <div class="metric-symbol">🧾</div>
+                <span>Egresos del mes</span>
+                <strong>@MonthlyExpenses.ToString("C")</strong>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card balance">
+                <div class="metric-symbol">📈</div>
+                <span>Ahorro mensual</span>
+                <strong>@SavingsRate.ToString("N1")%</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="dashboard-panel h-100">
+                <h4 class="mb-3"><span class="section-icon">🏆</span> Top categorías</h4>
+                @if (TopCategories.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div>📭</div>
+                        <strong>Sin egresos este mes</strong>
+                        <span>Cuando registres gastos, aparecerán acá.</span>
+                        <a class="empty-action" href="movimientos">➕ Cargar gasto</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="category-chart">
+                        @foreach (var category in TopCategories)
+                        {
+                            <div class="category-chart-row">
+                                <div class="chart-label">
+                                    <span>@category.Name</span>
+                                    <strong>@category.Amount.ToString("C")</strong>
+                                </div>
+                                <div class="chart-track">
+                                    <div class="chart-bar category" style="width:@GetCategoryPercentage(category.Amount)%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="dashboard-panel h-100">
+                <h4 class="mb-3"><span class="section-icon">💡</span> Cierre inteligente</h4>
+                <ul class="recommendation-list">
+                    @foreach (var insight in Insights)
+                    {
+                        <li>@insight</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IReadOnlyCollection<MovimientoDto> CurrentMonthMovements => _movimientos
+        .Where(m => m.Fecha.Year == DateTime.Today.Year && m.Fecha.Month == DateTime.Today.Month)
+        .ToArray();
+
+    private decimal MonthlyIncome => CurrentMonthMovements.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+    private decimal MonthlyExpenses => CurrentMonthMovements.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+    private decimal MonthlyBalance => MonthlyIncome - MonthlyExpenses;
+    private decimal SavingsRate => MonthlyIncome <= 0 ? 0 : MonthlyBalance / MonthlyIncome * 100;
+
+    private string ScoreClass => SavingsRate switch
+    {
+        >= 25 => "success",
+        >= 5 => "warning",
+        _ => "danger"
+    };
+
+    private string ScoreText => SavingsRate switch
+    {
+        >= 25 => "Excelente",
+        >= 5 => "En control",
+        _ => "A revisar"
+    };
+
+    private IReadOnlyCollection<CategoryExpense> TopCategories => CurrentMonthMovements
+        .Where(m => m.Tipo == TipoMovimiento.Egreso)
+        .GroupBy(m => m.CategoriaNombre)
+        .Select(g => new CategoryExpense(g.Key, g.Sum(m => m.Monto)))
+        .OrderByDescending(c => c.Amount)
+        .Take(5)
+        .ToArray();
+
+    private IEnumerable<string> Insights
+    {
+        get
+        {
+            if (CurrentMonthMovements.Count == 0)
+            {
+                yield return "Todavía no hay movimientos este mes. Cargá algunos datos para generar un cierre útil.";
+                yield break;
+            }
+
+            yield return MonthlyBalance >= 0
+                ? "El mes viene con balance positivo. Mantené este ritmo para fortalecer tu ahorro."
+                : "El mes viene con balance negativo. Revisá gastos variables y categorías de mayor impacto.";
+
+            if (TopCategories.Count > 0)
+            {
+                var top = TopCategories.First();
+                yield return $"La categoría con más gasto es {top.Name}, con {top.Amount:C}.";
+            }
+
+            yield return SavingsRate >= 20
+                ? "Tu tasa de ahorro es saludable para este mes."
+                : "Podrías definir un objetivo de ahorro mínimo para mejorar el cierre mensual.";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private decimal GetCategoryPercentage(decimal amount)
+    {
+        var max = TopCategories.Count == 0 ? 0 : TopCategories.Max(c => c.Amount);
+        return max <= 0 ? 0 : Math.Clamp(amount / max * 100, 6, 100);
+    }
+
+    private sealed record CategoryExpense(string Name, decimal Amount);
+}

@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinanzasIA.Application\FinanzasIA.Application.csproj" />
+    <ProjectReference Include="..\FinanzasIA.Infrastructure\FinanzasIA.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Evita generar/copiar el .exe apphost local, que puede quedar bloqueado por una ejecuci?n anterior. -->
+    <UseAppHost>false</UseAppHost>
+    <UserSecretsId>89152859-e763-4874-9cae-4e44779fa2eb</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+[
+  {
+    "Id": 1,
+    "Descripcion": "Sueldo",
+    "Monto": 1000,
+    "Fecha": "2026-07-02T00:00:00-03:00",
+    "Tipo": "Ingreso",
+    "Categoria": "Trabajo"
+  },
+  {
+    "Id": 2,
+    "Descripcion": "Supermercado",
+    "Monto": 250,
+    "Fecha": "2026-07-02T00:00:00-03:00",
+    "Tipo": "Egreso",
+    "Categoria": "Comida"
+  }
+]

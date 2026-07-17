@@ -1,0 +1,359 @@
+@page "/movimientos"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using System.Text
+
+<PageTitle>Movimientos</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">💳</span>
+    <div>
+        <h1>Movimientos</h1>
+        <p>Registrá y exportá tus ingresos y egresos.</p>
+    </div>
+</div>
+
+<div class="demo-banner mb-4">
+    <div>
+        <strong>¿Querés ver la app con más vida?</strong>
+        <span>Cargá movimientos de ejemplo para probar reportes y gráficos.</span>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" @onclick="LoadDemoDataAsync">✨ Cargar datos demo</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+else if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success" role="alert">@_successMessage</div>
+}
+
+@if (_categorias.Count == 0)
+{
+    <div class="alert alert-info" role="alert">
+        Primero tenés que crear al menos una categoría para poder registrar movimientos.
+    </div>
+}
+
+<div class="dashboard-panel mb-4">
+    <h4 class="mb-3"><span class="section-icon" aria-hidden="true">✍️</span> @(_editingId.HasValue ? "Editar movimiento" : "Nuevo movimiento")</h4>
+    <EditForm FormName="movimiento-form" Model="_form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="row g-3 mb-3">
+        <div class="col-md-2">
+            <label class="form-label">Tipo</label>
+            <InputSelect class="form-select" @bind-Value="_form.Tipo">
+                @foreach (var tipo in Enum.GetValues<TipoMovimiento>())
+                {
+                    <option value="@tipo">@tipo</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Categoría</label>
+            <InputSelect class="form-select" @bind-Value="_form.CategoriaId">
+                <option value="0">Seleccione...</option>
+                @foreach (var categoria in _categorias)
+                {
+                    <option value="@categoria.Id">@categoria.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Descripción</label>
+            <InputText class="form-control" @bind-Value="_form.Descripcion" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Monto</label>
+            <InputNumber class="form-control" @bind-Value="_form.Monto" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Fecha</label>
+            <InputDate class="form-control" @bind-Value="_form.Fecha" />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary" disabled="@(_categorias.Count == 0)">💾 @(_editingId.HasValue ? "Actualizar" : "Crear")</button>
+    @if (_editingId.HasValue)
+    {
+        <button type="button" class="btn btn-link" @onclick="CancelEdit">Cancelar edición</button>
+    }
+</EditForm>
+</div>
+
+@if (_movimientos.Count == 0)
+{
+    <div class="alert alert-info mt-4" role="alert">
+        No hay movimientos cargados todavía.
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-end mb-3">
+        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="ExportCsvAsync">⬇️ Exportar CSV</button>
+    </div>
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Categoría</th>
+                <th>Descripción</th>
+                <th>Monto</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var movimiento in _movimientos.OrderByDescending(m => m.Fecha))
+            {
+                <tr>
+                    <td>@movimiento.Id</td>
+                    <td>@movimiento.Fecha.ToShortDateString()</td>
+                    <td><span class="type-badge @(movimiento.Tipo == TipoMovimiento.Ingreso ? "income" : "expense")">@(movimiento.Tipo == TipoMovimiento.Ingreso ? "💰" : "🧾") @movimiento.Tipo</span></td>
+                    <td>@movimiento.CategoriaNombre</td>
+                    <td>@movimiento.Descripcion</td>
+                    <td class="@(movimiento.Tipo == TipoMovimiento.Ingreso ? "text-success fw-bold" : "text-danger fw-bold")">@((movimiento.Tipo == TipoMovimiento.Ingreso ? movimiento.Monto : -movimiento.Monto).ToString("N2"))</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Edit(movimiento)">✏️ Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(movimiento.Id)">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private readonly List<CategoriaDto> _categorias = [];
+    private readonly List<MovimientoDto> _movimientos = [];
+    private MovimientoFormModel _form = new();
+    private int? _editingId;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            var categorias = await ApiClient.GetCategoriasAsync();
+            var movimientos = await ApiClient.GetMovimientosAsync();
+
+            _categorias.Clear();
+            _categorias.AddRange(categorias);
+
+            _movimientos.Clear();
+            _movimientos.AddRange(movimientos);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            if (_form.CategoriaId <= 0)
+            {
+                _errorMessage = "Seleccione una categoría.";
+                return;
+            }
+
+            if (_editingId.HasValue)
+            {
+                await ApiClient.UpdateMovimientoAsync(_editingId.Value, new UpdateMovimientoDto
+                {
+                    Tipo = _form.Tipo,
+                    CategoriaId = _form.CategoriaId,
+                    Descripcion = _form.Descripcion,
+                    Monto = _form.Monto,
+                    Fecha = _form.Fecha
+                });
+                _successMessage = "Movimiento actualizado correctamente.";
+                await JSRuntime.InvokeVoidAsync("finanzasUi.toast", _successMessage, "success");
+            }
+            else
+            {
+                await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto
+                {
+                    Tipo = _form.Tipo,
+                    CategoriaId = _form.CategoriaId,
+                    Descripcion = _form.Descripcion,
+                    Monto = _form.Monto,
+                    Fecha = _form.Fecha
+                });
+                _successMessage = "Movimiento creado correctamente.";
+                await JSRuntime.InvokeVoidAsync("finanzasUi.toast", _successMessage, "success");
+            }
+
+            CancelEdit();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("finanzasUi.toast", "No se pudo guardar el movimiento.", "danger");
+        }
+    }
+
+    private void Edit(MovimientoDto movimiento)
+    {
+        _editingId = movimiento.Id;
+        _form = new MovimientoFormModel
+        {
+            Tipo = movimiento.Tipo,
+            CategoriaId = movimiento.CategoriaId,
+            Descripcion = movimiento.Descripcion,
+            Monto = movimiento.Monto,
+            Fecha = movimiento.Fecha
+        };
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            var confirmed = await JSRuntime.InvokeAsync<bool>("finanzasUi.confirm", "¿Seguro que querés eliminar este movimiento?");
+            if (!confirmed)
+            {
+                return;
+            }
+
+            await ApiClient.DeleteMovimientoAsync(id);
+            await LoadDataAsync();
+            _successMessage = "Movimiento eliminado correctamente.";
+            await JSRuntime.InvokeVoidAsync("finanzasUi.toast", _successMessage, "success");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("finanzasUi.toast", "No se pudo eliminar el movimiento.", "danger");
+        }
+    }
+
+    private async Task LoadDemoDataAsync()
+    {
+        try
+        {
+            var confirmed = await JSRuntime.InvokeAsync<bool>("finanzasUi.confirm", "Se crearán categorías y movimientos de ejemplo. ¿Continuar?");
+            if (!confirmed)
+            {
+                return;
+            }
+
+            var categorias = (await ApiClient.GetCategoriasAsync()).ToList();
+            var sueldo = await EnsureCategoriaAsync(categorias, "Sueldo", TipoMovimiento.Ingreso);
+            var alimentacion = await EnsureCategoriaAsync(categorias, "Alimentación", TipoMovimiento.Egreso);
+            var transporte = await EnsureCategoriaAsync(categorias, "Transporte", TipoMovimiento.Egreso);
+            var ocio = await EnsureCategoriaAsync(categorias, "Ocio", TipoMovimiento.Egreso);
+
+            var today = DateTime.Today;
+            await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto { Tipo = TipoMovimiento.Ingreso, CategoriaId = sueldo.Id, Descripcion = "Ingreso mensual", Monto = 350000, Fecha = today.AddDays(-8) });
+            await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto { Tipo = TipoMovimiento.Egreso, CategoriaId = alimentacion.Id, Descripcion = "Supermercado", Monto = 46500, Fecha = today.AddDays(-6) });
+            await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto { Tipo = TipoMovimiento.Egreso, CategoriaId = transporte.Id, Descripcion = "Combustible y traslados", Monto = 22500, Fecha = today.AddDays(-4) });
+            await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto { Tipo = TipoMovimiento.Egreso, CategoriaId = ocio.Id, Descripcion = "Salida de fin de semana", Monto = 18500, Fecha = today.AddDays(-2) });
+
+            await LoadDataAsync();
+            await JSRuntime.InvokeVoidAsync("finanzasUi.toast", "Datos demo cargados.", "success");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            await JSRuntime.InvokeVoidAsync("finanzasUi.toast", "No se pudieron cargar los datos demo.", "danger");
+        }
+    }
+
+    private async Task<CategoriaDto> EnsureCategoriaAsync(List<CategoriaDto> categorias, string nombre, TipoMovimiento tipo)
+    {
+        var existing = categorias.FirstOrDefault(c => c.Nombre.Equals(nombre, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var created = await ApiClient.CreateCategoriaAsync(new CreateCategoriaDto
+        {
+            Nombre = nombre,
+            TipoMovimiento = tipo
+        });
+        categorias.Add(created);
+        return created;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _form = new MovimientoFormModel();
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        var csv = BuildCsv(_movimientos.OrderByDescending(m => m.Fecha).ToArray());
+        var fileName = $"movimientos-{DateTime.Today:yyyyMMdd}.csv";
+        await JSRuntime.InvokeVoidAsync("finanzasExport.downloadTextFile", fileName, csv, "text/csv;charset=utf-8");
+    }
+
+    private static string BuildCsv(IEnumerable<MovimientoDto> movimientos)
+    {
+        var csv = new StringBuilder();
+        csv.AppendLine("Id,Fecha,Tipo,Categoria,Descripcion,Monto");
+
+        foreach (var movimiento in movimientos)
+        {
+            csv.AppendLine(string.Join(',',
+                movimiento.Id.ToString(CultureInfo.InvariantCulture),
+                EscapeCsv(movimiento.Fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)),
+                EscapeCsv(movimiento.Tipo.ToString()),
+                EscapeCsv(movimiento.CategoriaNombre),
+                EscapeCsv(movimiento.Descripcion),
+                movimiento.Monto.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        return csv.ToString();
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (!value.Contains(',') && !value.Contains('"') && !value.Contains('\n') && !value.Contains('\r'))
+        {
+            return value;
+        }
+
+        return $"\"{value.Replace("\"", "\"\"")}\"";
+    }
+
+    private class MovimientoFormModel
+    {
+        public TipoMovimiento Tipo { get; set; } = TipoMovimiento.Egreso;
+
+        [Range(1, int.MaxValue, ErrorMessage = "Seleccioná una categoría válida.")]
+        public int CategoriaId { get; set; }
+
+        [MaxLength(300, ErrorMessage = "La descripción no puede superar los 300 caracteres.")]
+        public string Descripcion { get; set; } = string.Empty;
+
+        [Range(typeof(decimal), "0.01", "9999999999999.99", ErrorMessage = "El monto debe ser mayor a 0.", ParseLimitsInInvariantCulture = true)]
+        public decimal Monto { get; set; }
+
+        [Required(ErrorMessage = "La fecha es obligatoria.")]
+        public DateTime Fecha { get; set; } = DateTime.Today;
+    }
+}

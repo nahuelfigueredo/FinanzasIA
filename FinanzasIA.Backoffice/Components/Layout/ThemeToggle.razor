@@ -1,0 +1,27 @@
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+<button type="button" class="theme-toggle" @onclick="ToggleThemeAsync" title="Cambiar tema">
+    <span aria-hidden="true">@(_isDark ? "☀️" : "🌙")</span>
+    <span>@(_isDark ? "Claro" : "Oscuro")</span>
+</button>
+
+@code {
+    private bool _isDark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _isDark = await JSRuntime.InvokeAsync<bool>("finanzasTheme.initialize");
+        StateHasChanged();
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        _isDark = await JSRuntime.InvokeAsync<bool>("finanzasTheme.toggle");
+    }
+}

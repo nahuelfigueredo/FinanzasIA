@@ -1,0 +1,192 @@
+@page "/categorias"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Categorías</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🏷️</span>
+    <div>
+        <h1>Categorías</h1>
+        <p>Organizá tus movimientos para que los reportes sean más claros.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+else if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success" role="alert">@_successMessage</div>
+}
+
+<div class="dashboard-panel mb-4">
+<h4 class="mb-3"><span class="section-icon" aria-hidden="true">✨</span> @(_editingId.HasValue ? "Editar categoría" : "Nueva categoría")</h4>
+<EditForm FormName="categoria-form" Model="_form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <InputText class="form-control" @bind-Value="_form.Nombre" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tipo</label>
+            <InputSelect class="form-select" @bind-Value="_form.TipoMovimiento">
+                @foreach (var tipo in Enum.GetValues<TipoMovimiento>())
+                {
+                    <option value="@tipo">@tipo</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+                💾 @(_editingId.HasValue ? "Actualizar" : "Crear")
+            </button>
+        </div>
+    </div>
+</EditForm>
+</div>
+
+@if (_editingId.HasValue)
+{
+    <button class="btn btn-link p-0 mb-3" @onclick="CancelEdit">Cancelar edición</button>
+}
+
+@if (_categorias.Count == 0)
+{
+    <div class="alert alert-info" role="alert">
+        No hay categorías cargadas todavía.
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var categoria in _categorias)
+            {
+                <tr>
+                    <td>@categoria.Id</td>
+                    <td>@categoria.Nombre</td>
+                    <td>@categoria.TipoMovimiento</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Edit(categoria)">✏️ Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(categoria.Id)">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private readonly List<CategoriaDto> _categorias = [];
+    private CategoriaFormModel _form = new();
+    private int? _editingId;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategoriasAsync();
+    }
+
+    private async Task LoadCategoriasAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            var categorias = await ApiClient.GetCategoriasAsync();
+            _categorias.Clear();
+            _categorias.AddRange(categorias);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            if (_editingId.HasValue)
+            {
+                await ApiClient.UpdateCategoriaAsync(_editingId.Value, new UpdateCategoriaDto
+                {
+                    Nombre = _form.Nombre,
+                    TipoMovimiento = _form.TipoMovimiento
+                });
+                _successMessage = "Categoría actualizada correctamente.";
+            }
+            else
+            {
+                await ApiClient.CreateCategoriaAsync(new CreateCategoriaDto
+                {
+                    Nombre = _form.Nombre,
+                    TipoMovimiento = _form.TipoMovimiento
+                });
+                _successMessage = "Categoría creada correctamente.";
+            }
+
+            CancelEdit();
+            await LoadCategoriasAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void Edit(CategoriaDto categoria)
+    {
+        _editingId = categoria.Id;
+        _form = new CategoriaFormModel
+        {
+            Nombre = categoria.Nombre,
+            TipoMovimiento = categoria.TipoMovimiento
+        };
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            await ApiClient.DeleteCategoriaAsync(id);
+            await LoadCategoriasAsync();
+            _successMessage = "Categoría eliminada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _form = new CategoriaFormModel();
+    }
+
+    private class CategoriaFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [MaxLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
+        public string Nombre { get; set; } = string.Empty;
+        public TipoMovimiento TipoMovimiento { get; set; } = TipoMovimiento.Egreso;
+    }
+}

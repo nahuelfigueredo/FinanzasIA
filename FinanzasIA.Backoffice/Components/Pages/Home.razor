@@ -1,0 +1,521 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Inicio</PageTitle>
+
+<section class="hero-panel mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-8">
+            <span class="badge rounded-pill text-bg-light mb-3">@DateTime.Today.ToString("dddd d 'de' MMMM")</span>
+            <h1><span class="hero-title-icon" aria-hidden="true">💸</span> Hola, @_preferences.UserName 👋</h1>
+            <p class="mb-0">Resumen rápido de tu balance, gastos, ingresos y recomendaciones para tomar mejores decisiones.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <div class="display-3 fw-bold" data-countup>@BalanceText</div>
+            <div>Balance neto actual</div>
+        </div>
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">
+        No se pudo cargar el reporte completo: @_errorMessage
+    </div>
+}
+else if (_isLoading)
+{
+    <div class="skeleton-grid" aria-label="Cargando reporte financiero">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-panel"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-card income">
+                <div class="metric-symbol" aria-hidden="true">💰</div>
+                <span>Ingresos</span>
+                <strong data-countup>@_analisis.TotalIngresos.ToString("C")</strong>
+                <small>Entradas registradas</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card expense">
+                <div class="metric-symbol" aria-hidden="true">🧾</div>
+                <span>Egresos</span>
+                <strong data-countup>@_analisis.TotalEgresos.ToString("C")</strong>
+                <small>Gastos acumulados</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card balance">
+                <div class="metric-symbol" aria-hidden="true">📊</div>
+                <span>Ahorro</span>
+                <strong data-countup>@_analisis.TasaAhorroPorcentaje.ToString("N1")%</strong>
+                <small>Tasa estimada</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card projection">
+                <div class="metric-symbol" aria-hidden="true">🔮</div>
+                <span>Proyección</span>
+                <strong data-countup>@_analisis.ProyeccionBalanceProximoMes.ToString("C")</strong>
+                <small>Próximo mes</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-7">
+            <div class="financial-health @HealthClass">
+                <div>
+                    <span>Salud financiera</span>
+                    <h2>@HealthText</h2>
+                    <p>@HealthMessage</p>
+                </div>
+                <div class="health-score">
+                    <strong>@HealthScore</strong>
+                    <span>/100</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="quick-actions">
+                <a class="quick-action income" href="movimientos">💰 Nuevo ingreso</a>
+                <a class="quick-action expense" href="movimientos">🧾 Nuevo egreso</a>
+                <a class="quick-action report" href="reporte-mensual">📅 Reporte</a>
+                <a class="quick-action budget" href="presupuesto">🎯 Presupuesto</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="dashboard-panel h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h4 class="mb-1"><span class="section-icon" aria-hidden="true">🕒</span> Últimos movimientos</h4>
+                        <p class="text-secondary mb-0">Actividad reciente registrada</p>
+                    </div>
+                    <span class="report-pill">@_movimientos.Count movimientos</span>
+                </div>
+
+                @if (_movimientos.Count == 0)
+                {
+                    <div class="empty-state">
+                        <div>💳</div>
+                        <strong>No hay movimientos todavía</strong>
+                        <span>Cargá tu primer ingreso o egreso para ver el reporte en acción.</span>
+                        <a class="empty-action" href="movimientos">➕ Cargar movimiento</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="movement-list">
+                        @foreach (var movimiento in _movimientos.OrderByDescending(m => m.Fecha).Take(5))
+                        {
+                            <div class="movement-item">
+                                <div class="movement-icon @(movimiento.Tipo == TipoMovimiento.Ingreso ? "income" : "expense")">
+                                    @(movimiento.Tipo == TipoMovimiento.Ingreso ? "↗" : "↘")
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong>@(string.IsNullOrWhiteSpace(movimiento.Descripcion) ? movimiento.CategoriaNombre : movimiento.Descripcion)</strong>
+                                    <span>@movimiento.CategoriaNombre · @movimiento.Fecha.ToShortDateString()</span>
+                                </div>
+                                <strong class="@(movimiento.Tipo == TipoMovimiento.Ingreso ? "text-success" : "text-danger")">
+                                    @((movimiento.Tipo == TipoMovimiento.Ingreso ? movimiento.Monto : -movimiento.Monto).ToString("C"))
+                                </strong>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="dashboard-panel mb-4">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">⚖️</span> Ingresos vs egresos</h4>
+                <div class="comparison-chart">
+                    <div>
+                        <div class="chart-label">
+                            <span>Ingresos</span>
+                            <strong>@_analisis.TotalIngresos.ToString("C")</strong>
+                        </div>
+                        <div class="chart-track">
+                            <div class="chart-bar income" style="width:@GetAmountPercentage(_analisis.TotalIngresos)%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="chart-label">
+                            <span>Egresos</span>
+                            <strong>@_analisis.TotalEgresos.ToString("C")</strong>
+                        </div>
+                        <div class="chart-track">
+                            <div class="chart-bar expense" style="width:@GetAmountPercentage(_analisis.TotalEgresos)%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-panel mb-4">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">🏷️</span> Gastos por categoría</h4>
+                @if (ExpenseCategories.Count == 0)
+                {
+                    <p class="text-secondary mb-0">Todavía no hay egresos para graficar.</p>
+                }
+                else
+                {
+                    <div class="donut-wrap mb-3">
+                        <div class="donut-chart" style="background:@DonutGradient"><span class="donut-hole"></span></div>
+                        <div class="donut-legend">
+                            @{ var donutIndex = 0; }
+                            @foreach (var categoria in ExpenseCategories)
+                            {
+                                <div><span class="donut-dot" style="background:@DonutColors[donutIndex++ % DonutColors.Length]"></span>@categoria.Name</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="category-chart">
+                        @foreach (var categoria in ExpenseCategories)
+                        {
+                            <div class="category-chart-row">
+                                <div class="chart-label">
+                                    <span>@categoria.Name</span>
+                                    <strong>@categoria.Amount.ToString("C")</strong>
+                                </div>
+                                <div class="chart-track">
+                                    <div class="chart-bar category" style="width:@GetCategoryPercentage(categoria.Amount)%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="dashboard-panel mb-4">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">⚡</span> Lectura rápida</h4>
+                <div class="insight-grid">
+                    <div>
+                        <span>Categorías</span>
+                        <strong>@_categorias.Count</strong>
+                    </div>
+                    <div>
+                        <span>Mayor gasto</span>
+                        <strong>@_analisis.CategoriaMayorGasto</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">🤖</span> Recomendaciones IA</h4>
+                <ul class="recommendation-list">
+                    @foreach (var recomendacion in _analisis.Recomendaciones.Take(3))
+                    {
+                        <li>@recomendacion</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showIncomePrompt)
+{
+    <div class="income-prompt-backdrop">
+        <div class="income-prompt-card">
+            <div class="income-prompt-emoji" aria-hidden="true">💵</div>
+            <h3>¡Nuevo mes! @DateTime.Today.ToString("MMMM yyyy")</h3>
+            <p class="text-secondary">Todavía no registraste ingresos este mes. ¿Cuál es tu ingreso de este mes?</p>
+            <EditForm Model="_incomeModel" OnValidSubmit="ConfirmarIngresoMensualAsync" FormName="income-prompt-form">
+                <DataAnnotationsValidator />
+                <div class="input-group mb-2">
+                    <span class="input-group-text">$</span>
+                    <InputNumber class="form-control form-control-lg" @bind-Value="_incomeModel.Monto" placeholder="Ej: 850000" />
+                </div>
+                <ValidationMessage For="() => _incomeModel.Monto" />
+                <InputText class="form-control mb-3" @bind-Value="_incomeModel.Descripcion" placeholder="Descripción (ej: Sueldo)" />
+                @if (!string.IsNullOrWhiteSpace(_incomePromptError))
+                {
+                    <div class="alert alert-danger py-2">@_incomePromptError</div>
+                }
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1" disabled="@_incomeSaving">
+                        @(_incomeSaving ? "Guardando..." : "✅ Registrar ingreso")
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="PosponerIngresoMensualAsync">Más tarde</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private AnalisisFinancieroDto _analisis = new();
+    private IReadOnlyCollection<CategoriaDto> _categorias = [];
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private PreferenceModel _preferences = new();
+    private bool _isLoading = true;
+    private bool _countUpStarted;
+    private string? _errorMessage;
+    private bool _showIncomePrompt;
+    private bool _incomeSaving;
+    private string? _incomePromptError;
+    private readonly IncomePromptModel _incomeModel = new();
+
+    private string BalanceText => _isLoading ? "$" : _analisis.BalanceNeto.ToString("C");
+
+    private decimal CurrentMonthExpenses => _movimientos
+        .Where(m => m.Tipo == TipoMovimiento.Egreso && m.Fecha.Year == DateTime.Today.Year && m.Fecha.Month == DateTime.Today.Month)
+        .Sum(m => m.Monto);
+
+    private decimal BudgetUsage => _preferences.MonthlyBudget <= 0 ? 0 : CurrentMonthExpenses / _preferences.MonthlyBudget * 100;
+
+    private int HealthScore
+    {
+        get
+        {
+            var score = 60;
+            score += _analisis.BalanceNeto > 0 ? 15 : -15;
+            score += _analisis.TasaAhorroPorcentaje >= 20 ? 15 : _analisis.TasaAhorroPorcentaje >= 5 ? 5 : -10;
+            score += BudgetUsage <= 75 ? 10 : BudgetUsage <= 100 ? -5 : -20;
+            return Math.Clamp(score, 0, 100);
+        }
+    }
+
+    private string HealthClass => HealthScore switch
+    {
+        >= 80 => "success",
+        >= 55 => "warning",
+        _ => "danger"
+    };
+
+    private string HealthText => HealthScore switch
+    {
+        >= 80 => "Excelente",
+        >= 55 => "En control",
+        _ => "Necesita atención"
+    };
+
+    private string HealthMessage => HealthScore switch
+    {
+        >= 80 => "Tu balance y presupuesto muestran una tendencia saludable.",
+        >= 55 => "Vas bien, pero conviene revisar gastos variables y objetivos.",
+        _ => "Hay señales de alerta. Revisá presupuesto, egresos y categorías principales."
+    };
+
+    private IReadOnlyCollection<CategoryExpense> ExpenseCategories => _movimientos
+        .Where(m => m.Tipo == TipoMovimiento.Egreso)
+        .GroupBy(m => m.CategoriaNombre)
+        .Select(g => new CategoryExpense(g.Key, g.Sum(m => m.Monto)))
+        .OrderByDescending(g => g.Amount)
+        .Take(5)
+        .ToArray();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var analisisTask = ApiClient.GetAnalisisIaAsync();
+            var categoriasTask = ApiClient.GetCategoriasAsync();
+            var movimientosTask = ApiClient.GetMovimientosAsync();
+
+            await Task.WhenAll(analisisTask, categoriasTask, movimientosTask);
+
+            _analisis = await analisisTask;
+            _categorias = await categoriasTask;
+            _movimientos = await movimientosTask;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
+                await EvaluarIngresoMensualAsync();
+                StateHasChanged();
+            }
+            catch
+            {
+            }
+        }
+
+        if (!_isLoading && !_countUpStarted)
+        {
+            _countUpStarted = true;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("finanzasFx.countUp");
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private decimal GetAmountPercentage(decimal amount)
+    {
+        var max = Math.Max(_analisis.TotalIngresos, _analisis.TotalEgresos);
+        return max <= 0 ? 0 : Math.Clamp(amount / max * 100, 4, 100);
+    }
+
+    private decimal GetCategoryPercentage(decimal amount)
+    {
+        var max = ExpenseCategories.Count == 0 ? 0 : ExpenseCategories.Max(c => c.Amount);
+        return max <= 0 ? 0 : Math.Clamp(amount / max * 100, 6, 100);
+    }
+
+    private static readonly string[] DonutColors = ["#2563eb", "#14b8a6", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+    private string DonutGradient
+    {
+        get
+        {
+            var total = ExpenseCategories.Sum(c => c.Amount);
+            if (total <= 0)
+            {
+                return "#e2e8f0";
+            }
+
+            var segments = new List<string>();
+            decimal cursor = 0;
+            var index = 0;
+            foreach (var categoria in ExpenseCategories)
+            {
+                var from = cursor / total * 360;
+                cursor += categoria.Amount;
+                var to = cursor / total * 360;
+                segments.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{DonutColors[index++ % DonutColors.Length]} {from:F1}deg {to:F1}deg"));
+            }
+
+            return $"conic-gradient({string.Join(", ", segments)})";
+        }
+    }
+
+    private sealed record CategoryExpense(string Name, decimal Amount);
+
+    private string CurrentMonthKey => DateTime.Today.ToString("yyyy-MM");
+
+    private bool TieneIngresoEsteMes => _movimientos.Any(m =>
+        m.Tipo == TipoMovimiento.Ingreso &&
+        m.Fecha.Year == DateTime.Today.Year &&
+        m.Fecha.Month == DateTime.Today.Month);
+
+    private async Task EvaluarIngresoMensualAsync()
+    {
+        if (_isLoading || _errorMessage is not null || TieneIngresoEsteMes)
+        {
+            return;
+        }
+
+        try
+        {
+            var dismissed = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", "income-prompt-dismissed");
+            if (dismissed == CurrentMonthKey)
+            {
+                return;
+            }
+        }
+        catch
+        {
+        }
+
+        _showIncomePrompt = true;
+    }
+
+    private async Task PosponerIngresoMensualAsync()
+    {
+        _showIncomePrompt = false;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "income-prompt-dismissed", CurrentMonthKey);
+        }
+        catch
+        {
+        }
+    }
+
+    private async Task ConfirmarIngresoMensualAsync()
+    {
+        _incomeSaving = true;
+        _incomePromptError = null;
+        try
+        {
+            var categoriaId = await ObtenerCategoriaIngresoAsync();
+            await ApiClient.CreateMovimientoAsync(new CreateMovimientoDto
+            {
+                Tipo = TipoMovimiento.Ingreso,
+                CategoriaId = categoriaId,
+                Descripcion = string.IsNullOrWhiteSpace(_incomeModel.Descripcion) ? "Ingreso mensual" : _incomeModel.Descripcion,
+                Monto = _incomeModel.Monto,
+                Fecha = DateTime.Today
+            });
+
+            _showIncomePrompt = false;
+            _countUpStarted = false;
+            _movimientos = await ApiClient.GetMovimientosAsync();
+            _analisis = await ApiClient.GetAnalisisIaAsync();
+        }
+        catch (Exception ex)
+        {
+            _incomePromptError = $"No se pudo registrar el ingreso: {ex.Message}";
+        }
+        finally
+        {
+            _incomeSaving = false;
+        }
+    }
+
+    private async Task<int> ObtenerCategoriaIngresoAsync()
+    {
+        var categoria = _categorias.FirstOrDefault(c => c.TipoMovimiento == TipoMovimiento.Ingreso);
+        if (categoria is not null)
+        {
+            return categoria.Id;
+        }
+
+        var nueva = await ApiClient.CreateCategoriaAsync(new CreateCategoriaDto
+        {
+            Nombre = "Sueldo",
+            TipoMovimiento = TipoMovimiento.Ingreso
+        });
+        _categorias = await ApiClient.GetCategoriasAsync();
+        return nueva.Id;
+    }
+
+    private sealed class IncomePromptModel
+    {
+        [Range(typeof(decimal), "0.01", "9999999999999.99", ParseLimitsInInvariantCulture = true, ErrorMessage = "Ingresá un monto válido")]
+        public decimal Monto { get; set; }
+
+        public string Descripcion { get; set; } = "Sueldo";
+    }
+
+    private sealed class PreferenceModel
+    {
+        public string UserName { get; set; } = "Usuario";
+        public string Currency { get; set; } = "ARS";
+        public decimal MonthlyBudget { get; set; } = 100000;
+        public int FiscalDay { get; set; } = 1;
+        public bool ShowDemoHint { get; set; } = true;
+    }
+}

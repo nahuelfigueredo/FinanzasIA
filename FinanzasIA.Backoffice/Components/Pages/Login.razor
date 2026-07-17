@@ -1,0 +1,88 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@layout Layout.EmptyLayout
+@using System.ComponentModel.DataAnnotations
+@using FinanzasIA.Backoffice.Auth
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Iniciar sesión - Finanzas IA</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-split">
+        <div class="auth-side">
+            <div class="auth-side-emoji" aria-hidden="true">📊</div>
+            <h2>Tus finanzas, ordenadas.</h2>
+            <p>Balance, presupuesto y análisis inteligente en un solo lugar. Hasta podés cargar gastos por WhatsApp.</p>
+            <ul class="auth-side-list">
+                <li>💰 Ingresos y egresos al instante</li>
+                <li>🎯 Presupuesto mensual con alertas</li>
+                <li>🤖 Recomendaciones con IA</li>
+            </ul>
+        </div>
+        <div class="auth-card">
+            <div class="auth-brand">
+                <span class="brand-icon" aria-hidden="true">$</span>
+                <h1>Finanzas IA</h1>
+            </div>
+            <h2>Iniciar sesión</h2>
+            <p class="text-secondary">Ingresá con tu cuenta para ver tus finanzas.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@_errorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUserAsync" FormName="login-form">
+            <DataAnnotationsValidator />
+            <div class="mb-3">
+                <label class="form-label" for="email">Email</label>
+                <InputText @bind-Value="Input.Email" id="email" class="form-control" autocomplete="username" />
+                <ValidationMessage For="() => Input.Email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="password">Contraseña</label>
+                <InputText type="password" @bind-Value="Input.Password" id="password" class="form-control" autocomplete="current-password" />
+                <ValidationMessage For="() => Input.Password" />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+        </EditForm>
+
+                    <p class="auth-switch">¿No tenés cuenta? <a href="/registro">Registrate</a></p>
+                </div>
+            </div>
+        </div>
+
+@code {
+    private string? _errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private LoginModel Input { get; set; } = new();
+
+    private async Task LoginUserAsync()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            _errorMessage = "Email o contraseña incorrectos.";
+        }
+    }
+
+    private sealed class LoginModel
+    {
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [EmailAddress(ErrorMessage = "El email no es válido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

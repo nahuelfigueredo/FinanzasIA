@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="FinanzasIA.Api/FinanzasIA.Api.csproj" />
+  <Project Path="FinanzasIA.Api.Tests/FinanzasIA.Api.Tests.csproj" />
+  <Project Path="FinanzasIA.Application/FinanzasIA.Application.csproj" />
+  <Project Path="FinanzasIA.Application.Tests/FinanzasIA.Application.Tests.csproj" />
+  <Project Path="FinanzasIA.Backoffice/FinanzasIA.Backoffice.csproj" />
+  <Project Path="FinanzasIA.Core/FinanzasIA.Core.csproj" />
+  <Project Path="FinanzasIA.Infrastructure/FinanzasIA.Infrastructure.csproj" />
+</Solution>

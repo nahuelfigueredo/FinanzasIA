@@ -1,0 +1,109 @@
+@page "/configuracion"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Configuración</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">⚙️</span>
+    <div>
+        <h1>Configuración</h1>
+        <p>Personalizá la experiencia de Finanzas IA en este dispositivo.</p>
+    </div>
+</div>
+
+@if (_isLoading)
+{
+    <div class="report-loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span>Cargando configuración...</span>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="dashboard-panel">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">👤</span> Preferencias</h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre</label>
+                        <InputText class="form-control" @bind-Value="_preferences.UserName" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Moneda</label>
+                        <InputSelect class="form-select" @bind-Value="_preferences.Currency">
+                            <option value="ARS">ARS - Peso argentino</option>
+                            <option value="USD">USD - Dólar</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="UYU">UYU - Peso uruguayo</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Presupuesto mensual</label>
+                        <InputNumber class="form-control" @bind-Value="_preferences.MonthlyBudget" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Día de inicio del mes fiscal</label>
+                        <InputNumber class="form-control" @bind-Value="_preferences.FiscalDay" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <InputCheckbox class="form-check-input" @bind-Value="_preferences.ShowDemoHint" />
+                            <label class="form-check-label">Mostrar sugerencias para cargar datos demo</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary mt-4" type="button" @onclick="SaveAsync">💾 Guardar configuración</button>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="dashboard-panel h-100">
+                <h4 class="mb-3"><span class="section-icon" aria-hidden="true">✨</span> Vista previa</h4>
+                <div class="settings-preview">
+                    <div class="page-icon">👋</div>
+                    <h3>Hola, @_preferences.UserName</h3>
+                    <p>Tu moneda principal es <strong>@_preferences.Currency</strong>.</p>
+                    <p>Presupuesto mensual: <strong>@_preferences.MonthlyBudget.ToString("C")</strong></p>
+                    <p class="mb-0">Mes fiscal desde el día <strong>@_preferences.FiscalDay</strong>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PreferenceModel _preferences = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        _preferences.FiscalDay = Math.Clamp(_preferences.FiscalDay, 1, 28);
+        _preferences.MonthlyBudget = Math.Max(0, _preferences.MonthlyBudget);
+        _preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.set", _preferences);
+        await JSRuntime.InvokeVoidAsync("finanzasUi.toast", "Configuración guardada.", "success");
+    }
+
+    private sealed class PreferenceModel
+    {
+        public string UserName { get; set; } = "Usuario";
+        public string Currency { get; set; } = "ARS";
+        public decimal MonthlyBudget { get; set; } = 100000;
+        public int FiscalDay { get; set; } = 1;
+        public bool ShowDemoHint { get; set; } = true;
+    }
+}

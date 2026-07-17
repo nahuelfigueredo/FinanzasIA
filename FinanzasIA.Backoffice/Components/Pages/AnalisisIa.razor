@@ -1,0 +1,90 @@
+@page "/analisis-ia"
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Análisis IA</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🤖</span>
+    <div>
+        <h1>Análisis financiero IA</h1>
+        <p>Indicadores, proyección y recomendaciones automáticas.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+else if (_analisis is null)
+{
+    <p>Cargando análisis...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>💰 Ingresos</h6>
+                    <strong>@_analisis.TotalIngresos.ToString("C")</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>🧾 Egresos</h6>
+                    <strong>@_analisis.TotalEgresos.ToString("C")</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>⚖️ Balance neto</h6>
+                    <strong>@_analisis.BalanceNeto.ToString("C")</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6>📈 Tasa de ahorro</h6>
+                    <strong>@_analisis.TasaAhorroPorcentaje.ToString("N2")%</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <strong>Categoría de mayor gasto:</strong> @_analisis.CategoriaMayorGasto
+    </div>
+    <div class="mb-4">
+        <strong>Proyección de balance próximo mes:</strong> @_analisis.ProyeccionBalanceProximoMes.ToString("C")
+    </div>
+
+    <h4><span class="section-icon" aria-hidden="true">💡</span> Recomendaciones</h4>
+    <ul class="recommendation-list">
+        @foreach (var recomendacion in _analisis.Recomendaciones)
+        {
+            <li>@recomendacion</li>
+        }
+    </ul>
+}
+
+@code {
+    private AnalisisFinancieroDto? _analisis;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _analisis = await ApiClient.GetAnalisisIaAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}

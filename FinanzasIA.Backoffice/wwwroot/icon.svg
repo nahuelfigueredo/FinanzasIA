@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Finanzas IA">
+  <rect width="512" height="512" rx="112" fill="#1b6ec2"/>
+  <path fill="#ffffff" d="M144 160h224a32 32 0 0 1 32 32v160a32 32 0 0 1-32 32H144a32 32 0 0 1-32-32V192a32 32 0 0 1 32-32Zm0 64v32h224v-32H144Zm32 80a24 24 0 1 0 0 48 24 24 0 0 0 0-48Zm80 0a24 24 0 1 0 0 48 24 24 0 0 0 0-48Zm80 0a24 24 0 1 0 0 48 24 24 0 0 0 0-48Z"/>
+  <path fill="#9ee7ff" d="M288 112h48v48h-48zM352 96h32v32h-32zM224 112h32v48h-32z"/>
+</svg>

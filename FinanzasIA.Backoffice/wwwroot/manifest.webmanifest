@@ -1,0 +1,66 @@
+{
+  "name": "Finanzas IA",
+  "short_name": "FinanzasIA",
+  "description": "Aplicación para gestionar finanzas personales con asistencia de IA.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1b6ec2",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Nuevo movimiento",
+      "short_name": "Movimiento",
+      "description": "Registrar un ingreso o egreso",
+      "url": "/movimientos",
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Presupuesto",
+      "short_name": "Presupuesto",
+      "description": "Ver el estado del presupuesto mensual",
+      "url": "/presupuesto",
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Reporte mensual",
+      "short_name": "Reporte",
+      "description": "Abrir el cierre mensual",
+      "url": "/reporte-mensual",
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    }
+  ]
+}

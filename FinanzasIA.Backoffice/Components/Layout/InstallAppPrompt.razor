@@ -1,0 +1,70 @@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+@if (!_isInstalled)
+{
+    <div class="install-app-prompt">
+        <div>
+            <strong>Finanzas IA como aplicación</strong>
+            <span>@StatusText</span>
+        </div>
+        <button class="btn btn-primary btn-sm" type="button" disabled="@(!_canInstall)" @onclick="InstallAsync">
+            Instalar aplicación
+        </button>
+    </div>
+}
+
+@code {
+    private DotNetObjectReference<InstallAppPrompt>? _dotNetReference;
+    private bool _canInstall;
+    private bool _isInstalled;
+
+    private string StatusText => _canInstall
+        ? "Podés instalarla en este dispositivo."
+        : "Si el navegador no muestra el botón todavía, abrila con Edge o Chrome y esperá unos segundos.";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _dotNetReference = DotNetObjectReference.Create(this);
+        _isInstalled = await JSRuntime.InvokeAsync<bool>("finanzasPwa.isInstalled");
+        _canInstall = await JSRuntime.InvokeAsync<bool>("finanzasPwa.canInstall");
+        await JSRuntime.InvokeVoidAsync("finanzasPwa.registerInstallPrompt", _dotNetReference);
+        StateHasChanged();
+    }
+
+    private async Task InstallAsync()
+    {
+        var installed = await JSRuntime.InvokeAsync<bool>("finanzasPwa.install");
+        _isInstalled = installed || await JSRuntime.InvokeAsync<bool>("finanzasPwa.isInstalled");
+        _canInstall = await JSRuntime.InvokeAsync<bool>("finanzasPwa.canInstall");
+    }
+
+    [JSInvokable]
+    public void InstallAvailable()
+    {
+        _canInstall = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dotNetReference is not null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("finanzasPwa.unregisterInstallPrompt");
+            }
+            catch (JSDisconnectedException)
+            {
+            }
+
+            _dotNetReference.Dispose();
+        }
+    }
+}

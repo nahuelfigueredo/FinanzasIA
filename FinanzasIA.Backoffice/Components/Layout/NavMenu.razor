@@ -1,0 +1,70 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">
+            <span class="brand-icon" aria-hidden="true">$</span>
+            <span>Finanzas IA</span>
+        </a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="nav flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="categorias">
+                <span class="bi bi-tags-fill-nav-menu" aria-hidden="true"></span> Categorías
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="movimientos">
+                <span class="bi bi-cash-stack-nav-menu" aria-hidden="true"></span> Movimientos
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="analisis-ia">
+                <span class="bi bi-graph-up-arrow-nav-menu" aria-hidden="true"></span> Análisis IA
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="presupuesto">
+                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuesto
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="reporte-mensual">
+                <span class="bi bi-calendar-report-nav-menu" aria-hidden="true"></span> Reporte mensual
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="configuracion">
+                <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Configuración
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3 nav-session">
+                    <div class="nav-user">👤 @(context.User.Identity?.Name)</div>
+                    <form action="/logout" method="post">
+                        <AntiforgeryToken />
+                        <button type="submit" class="nav-link nav-logout">
+                            <span class="bi bi-arrow-bar-left" aria-hidden="true"></span> Cerrar sesión
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+</div>

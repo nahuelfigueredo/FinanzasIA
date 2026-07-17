@@ -1,0 +1,91 @@
+@FinanzasIA.Api_HostAddress = http://localhost:5027
+
+### Estado de la API
+GET {{FinanzasIA.Api_HostAddress}}/
+Accept: application/json
+
+### Info WhatsApp
+GET {{FinanzasIA.Api_HostAddress}}/whatsapp
+Accept: application/json
+
+### Simular WhatsApp: ayuda
+POST {{FinanzasIA.Api_HostAddress}}/api/whatsapp/simular
+Content-Type: application/json
+
+{
+  "telefono": "5491111111111",
+  "texto": "ayuda"
+}
+
+### Simular WhatsApp: cargar egreso
+POST {{FinanzasIA.Api_HostAddress}}/api/whatsapp/simular
+Content-Type: application/json
+
+{
+  "telefono": "5491111111111",
+  "texto": "egreso 250 supermercado comida"
+}
+
+### Simular WhatsApp: cargar ingreso
+POST {{FinanzasIA.Api_HostAddress}}/api/whatsapp/simular
+Content-Type: application/json
+
+{
+  "telefono": "5491111111111",
+  "texto": "ingreso 1000 sueldo trabajo"
+}
+
+### Simular WhatsApp: resumen
+POST {{FinanzasIA.Api_HostAddress}}/api/whatsapp/simular
+Content-Type: application/json
+
+{
+  "telefono": "5491111111111",
+  "texto": "resumen"
+}
+
+### Listar movimientos
+GET {{FinanzasIA.Api_HostAddress}}/api/movimientos
+Accept: application/json
+
+### Buscar movimiento por id
+GET {{FinanzasIA.Api_HostAddress}}/api/movimientos/1
+Accept: application/json
+
+### Crear movimiento
+POST {{FinanzasIA.Api_HostAddress}}/api/movimientos
+Content-Type: application/json
+
+{
+  "descripcion": "Internet",
+  "monto": 120,
+  "fecha": "2026-06-23",
+  "tipo": "Egreso",
+  "categoria": "Servicios"
+}
+
+### Actualizar movimiento
+PUT {{FinanzasIA.Api_HostAddress}}/api/movimientos/1
+Content-Type: application/json
+
+{
+  "descripcion": "Sueldo actualizado",
+  "monto": 1500,
+  "fecha": "2026-06-23",
+  "tipo": "Ingreso",
+  "categoria": "Trabajo"
+}
+
+### Eliminar movimiento
+DELETE {{FinanzasIA.Api_HostAddress}}/api/movimientos/2
+
+### Resumen financiero
+GET {{FinanzasIA.Api_HostAddress}}/api/resumen
+Accept: application/json
+
+### Categorías
+GET {{FinanzasIA.Api_HostAddress}}/api/categorias
+Accept: application/json
+````````
+
+# Response
