@@ -16,6 +16,8 @@ public class ApiKeyMiddleware
     {
         // Sin API key configurada (desarrollo local) o rutas públicas: no se exige.
         if (string.IsNullOrWhiteSpace(_apiKey) ||
+            context.Request.Path == "/" ||
+            context.Request.Path.StartsWithSegments("/swagger") ||
             context.Request.Path.StartsWithSegments("/health") ||
             context.Request.Path.StartsWithSegments("/api/whatsapp"))
         {

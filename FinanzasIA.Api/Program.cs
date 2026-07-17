@@ -10,6 +10,14 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render define PORT; si no hay ASPNETCORE_URLS, escuchar en ese puerto (o 8080 por defecto).
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+    builder.WebHost.UseUrls($"http://+:{port}");
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -42,13 +50,16 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
+// Swagger habilitado también en Production (temporal, para verificar el deploy en Render).
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// En Render/producción el TLS lo termina el proxy; redirigir a HTTPS rompe el health check.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -61,6 +72,13 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
+
+app.MapGet("/", () => Results.Ok(new
+{
+    Application = "FinanzasIA API",
+    Status = "Running",
+    Environment = app.Environment.EnvironmentName
+}));
 
 using (var scope = app.Services.CreateScope())
 {
