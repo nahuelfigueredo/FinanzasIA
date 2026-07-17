@@ -1,9 +1,9 @@
-const cacheName = 'finanzas-ia-v1';
+const cacheName = 'finanzas-ia-v2';
 const offlineAssets = [
   '/',
   '/manifest.webmanifest',
-  '/icon.svg',
-  '/favicon.png',
+  '/app-icon.svg',
+  '/brand-icon.svg',
   '/app.css'
 ];
 

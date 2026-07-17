@@ -1122,6 +1122,11 @@ html[data-theme="dark"] .donut-hole {
         font-weight: 700;
     }
 
+    .auth-brand img.brand-icon {
+        background: none;
+        object-fit: contain;
+    }
+
     .auth-brand h1 {
         font-size: 1.3rem;
         margin: 0;

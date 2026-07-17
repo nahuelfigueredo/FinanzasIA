@@ -43,6 +43,13 @@
     width: 2.4rem;
 }
 
+img.brand-icon {
+    background: none;
+    box-shadow: 0 12px 28px rgba(13, 21, 51, 0.35);
+    border-radius: 0.7rem;
+    object-fit: contain;
+}
+
 .bi {
     display: inline-block;
     position: relative;
