@@ -3,6 +3,16 @@
 @code {
     protected override void OnInitialized()
     {
+        var relativePath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var path = "/" + relativePath.Split('?', '#')[0].TrimEnd('/');
+
+        // Evitar bucles: nunca redirigir hacia login desde login o desde la página de error.
+        if (path.Equals("/login", StringComparison.OrdinalIgnoreCase) ||
+            path.Equals("/error", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         NavigationManager.NavigateTo("/login", forceLoad: true);
     }
 }
