@@ -5,6 +5,7 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Globalization
 @using System.Text
+@using FinanzasIA.Backoffice.Models
 
 <PageTitle>Movimientos</PageTitle>
 
@@ -337,23 +338,7 @@ else
             return value;
         }
 
-        return $"\"{value.Replace("\"", "\"\"")}\"";
-    }
-
-    private class MovimientoFormModel
-    {
-        public TipoMovimiento Tipo { get; set; } = TipoMovimiento.Egreso;
-
-        [Range(1, int.MaxValue, ErrorMessage = "Seleccioná una categoría válida.")]
-        public int CategoriaId { get; set; }
-
-        [MaxLength(300, ErrorMessage = "La descripción no puede superar los 300 caracteres.")]
-        public string Descripcion { get; set; } = string.Empty;
-
-        [Range(typeof(decimal), "0.01", "9999999999999.99", ErrorMessage = "El monto debe ser mayor a 0.", ParseLimitsInInvariantCulture = true)]
-        public decimal Monto { get; set; }
-
-        [Required(ErrorMessage = "La fecha es obligatoria.")]
-        public DateTime Fecha { get; set; } = DateTime.Today;
+        var quote = "\"";
+        return quote + value.Replace(quote, quote + quote) + quote;
     }
 }

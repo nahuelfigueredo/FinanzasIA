@@ -54,12 +54,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// En Render/producción el TLS lo termina el proxy; redirigir a HTTPS rompe el health check.
-if (app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
+// Nota: no se usa UseHttpsRedirection; en Render el TLS lo termina el proxy.
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -80,10 +75,20 @@ app.MapGet("/", () => Results.Ok(new
     Environment = app.Environment.EnvironmentName
 }));
 
-using (var scope = app.Services.CreateScope())
+// La migración no debe impedir que la app escuche: si falla, se loguea y la app arranca igual.
+try
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<FinanzasDbContext>();
     await dbContext.Database.MigrateAsync();
+    app.Logger.LogInformation("Migraciones de base de datos aplicadas correctamente");
 }
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Error al aplicar migraciones; la aplicación continúa iniciando");
+}
+
+app.Logger.LogInformation("FinanzasIA iniciada correctamente");
+app.Logger.LogInformation("Aplicación escuchando en el puerto configurado");
 
 app.Run();

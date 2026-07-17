@@ -14,11 +14,10 @@ public class ApiKeyMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // Solo protege rutas /api; el resto (Blazor, Swagger, health) es de acceso libre.
         // Sin API key configurada (desarrollo local) o rutas públicas: no se exige.
         if (string.IsNullOrWhiteSpace(_apiKey) ||
-            context.Request.Path == "/" ||
-            context.Request.Path.StartsWithSegments("/swagger") ||
-            context.Request.Path.StartsWithSegments("/health") ||
+            !context.Request.Path.StartsWithSegments("/api") ||
             context.Request.Path.StartsWithSegments("/api/whatsapp"))
         {
             await _next(context);

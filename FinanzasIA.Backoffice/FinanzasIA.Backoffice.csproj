@@ -2,22 +2,33 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FinanzasIA.Application\FinanzasIA.Application.csproj" />
+    <ProjectReference Include="..\FinanzasIA.Infrastructure\FinanzasIA.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- Código de la API integrado en la misma aplicación (controllers bajo /api, servicios y middleware). -->
+  <ItemGroup>
+    <Compile Include="..\FinanzasIA.Api\controllers\**\*.cs" Link="ApiIntegration\Controllers\%(Filename)%(Extension)" />
+    <Compile Include="..\FinanzasIA.Api\DTOs\**\*.cs" Link="ApiIntegration\DTOs\%(Filename)%(Extension)" />
+    <Compile Include="..\FinanzasIA.Api\Middleware\**\*.cs" Link="ApiIntegration\Middleware\%(Filename)%(Extension)" />
+    <Compile Include="..\FinanzasIA.Api\Options\**\*.cs" Link="ApiIntegration\Options\%(Filename)%(Extension)" />
+    <Compile Include="..\FinanzasIA.Api\Services\**\*.cs" Link="ApiIntegration\Services\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <UserSecretsId>51f504e9-654f-49e4-aabf-15abb4cd24a5</UserSecretsId>
   </PropertyGroup>
 

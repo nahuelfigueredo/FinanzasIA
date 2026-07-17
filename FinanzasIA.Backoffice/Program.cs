@@ -1,6 +1,11 @@
+using FinanzasIA.Api.Options;
+using FinanzasIA.Api.Services;
+using FinanzasIA.Application.DependencyInjection;
 using FinanzasIA.Backoffice.Auth;
 using FinanzasIA.Backoffice.Components;
 using FinanzasIA.Backoffice.Services;
+using FinanzasIA.Infrastructure.DependencyInjection;
+using FinanzasIA.Infrastructure.Persistence.Context;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -9,9 +14,28 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render define PORT; si no hay ASPNETCORE_URLS, escuchar en ese puerto (o 8080 por defecto).
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+    builder.WebHost.UseUrls($"http://+:{port}");
+}
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// --- Servicios de la API integrada (controllers bajo /api, Swagger, WhatsApp, dominio) ---
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
+builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
+builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
+builder.Services.AddScoped<IUsuarioWhatsAppResolver, UsuarioWhatsAppResolver>();
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var authConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is required.");
@@ -40,26 +64,47 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider>();
 builder.Services.AddHttpContextAccessor();
 
-var apiBaseUrl = builder.Configuration["Api:BaseUrl"];
-if (string.IsNullOrWhiteSpace(apiBaseUrl))
-{
-    apiBaseUrl = "http://localhost:5027/";
-}
-
 builder.Services.AddTransient<UserIdHeaderHandler>();
 
-builder.Services.AddHttpClient<FinanzasApiClient>(httpClient =>
+// La API vive en la misma aplicación: el cliente llama a la propia instancia (self-call) con rutas relativas /api/...
+var selfPort = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var selfBaseUrl = builder.Environment.IsDevelopment()
+    ? null
+    : $"http://localhost:{selfPort}/";
+
+builder.Services.AddHttpClient<FinanzasApiClient>((sp, httpClient) =>
 {
-    httpClient.BaseAddress = new Uri(apiBaseUrl);
+    if (selfBaseUrl is not null)
+    {
+        httpClient.BaseAddress = new Uri(selfBaseUrl);
+        return;
+    }
+
+    // En desarrollo, usar la URL en la que corre esta misma app.
+    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var request = accessor.HttpContext?.Request;
+    var baseUrl = request is not null
+        ? $"{request.Scheme}://{request.Host}/"
+        : "http://localhost:5000/";
+    httpClient.BaseAddress = new Uri(baseUrl);
 })
 .AddHttpMessageHandler<UserIdHeaderHandler>();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// La migración no debe impedir que la app escuche: si falla, se loguea y la app arranca igual.
+try
 {
+    using var scope = app.Services.CreateScope();
     var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
     authDb.Database.Migrate();
+    var finanzasDb = scope.ServiceProvider.GetRequiredService<FinanzasDbContext>();
+    finanzasDb.Database.Migrate();
+    app.Logger.LogInformation("Migraciones de base de datos aplicadas correctamente");
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Error al aplicar migraciones; la aplicación continúa iniciando");
 }
 
 // Configure the HTTP request pipeline.
@@ -69,7 +114,7 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseStatusCodePagesWithReExecute("/not-found");
 app.UseForwardedHeaders(new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
 {
     ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
@@ -78,6 +123,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
+
+// Swagger disponible en /swagger (misma aplicación).
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// Protección por API key solo para las rutas /api (excepto las públicas definidas en el middleware).
+app.UseMiddleware<FinanzasIA.Api.Middleware.ApiKeyMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -90,8 +142,13 @@ app.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
     return Results.Redirect("/login");
 });
 
-app.MapStaticAssets();
+app.UseStaticFiles();
+app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.Logger.LogInformation("FinanzasIA iniciada correctamente (Backoffice + API integrada)");
+app.Logger.LogInformation("Aplicación escuchando en el puerto configurado");
 
 app.Run();

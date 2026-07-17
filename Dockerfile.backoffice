@@ -1,4 +1,4 @@
-# FinanzasIA - aplicacion unica (Backoffice + API integrada)
+# Backoffice - contexto de build: raíz del repositorio
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
