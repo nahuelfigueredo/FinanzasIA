@@ -66,27 +66,27 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddTransient<UserIdHeaderHandler>();
 
-// La API vive en la misma aplicación: el cliente llama a la propia instancia (self-call) con rutas relativas /api/...
-var selfPort = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-var selfBaseUrl = builder.Environment.IsDevelopment()
-    ? null
-    : $"http://localhost:{selfPort}/";
-
+// La API vive en la misma aplicación: el cliente se llama a sí mismo con rutas relativas /api/...
+// La URL base se resuelve desde el request actual; si no hay HttpContext (p. ej. circuito interactivo),
+// se usa la dirección real en la que escucha Kestrel (nunca un puerto hardcodeado).
 builder.Services.AddHttpClient<FinanzasApiClient>((sp, httpClient) =>
 {
-    if (selfBaseUrl is not null)
+    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var request = accessor.HttpContext?.Request;
+    if (request is not null)
     {
-        httpClient.BaseAddress = new Uri(selfBaseUrl);
+        httpClient.BaseAddress = new Uri($"{request.Scheme}://{request.Host}/");
         return;
     }
 
-    // En desarrollo, usar la URL en la que corre esta misma app.
-    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-    var request = accessor.HttpContext?.Request;
-    var baseUrl = request is not null
-        ? $"{request.Scheme}://{request.Host}/"
-        : "http://localhost:5000/";
-    httpClient.BaseAddress = new Uri(baseUrl);
+    // Fallback: dirección real de escucha del servidor (self-call por loopback).
+    var server = sp.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
+    var address = server.Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()
+        ?.Addresses.FirstOrDefault();
+    var port = address is not null && Uri.TryCreate(address.Replace("+", "localhost").Replace("*", "localhost").Replace("[::]", "localhost"), UriKind.Absolute, out var listenUri)
+        ? listenUri.Port
+        : 8080;
+    httpClient.BaseAddress = new Uri($"http://localhost:{port}/");
 })
 .AddHttpMessageHandler<UserIdHeaderHandler>();
 
