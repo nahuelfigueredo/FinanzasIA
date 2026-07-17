@@ -93,6 +93,7 @@ builder.Services.AddHttpClient<FinanzasApiClient>((sp, httpClient) =>
 var app = builder.Build();
 
 // La migración no debe impedir que la app escuche: si falla, se loguea y la app arranca igual.
+app.Logger.LogInformation("Iniciando migraciones de base de datos...");
 try
 {
     using var scope = app.Services.CreateScope();
@@ -107,10 +108,28 @@ catch (Exception ex)
     app.Logger.LogError(ex, "Error al aplicar migraciones; la aplicación continúa iniciando");
 }
 
+// Middleware global de diagnóstico: loguea la excepción original completa (tipo, mensaje y stack trace)
+// antes de que cualquier otro handler la procese. Debe ir PRIMERO en el pipeline.
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogCritical(ex, "EXCEPCIÓN NO CONTROLADA en {Method} {Path}", context.Request.Method, context.Request.Path);
+        throw;
+    }
+});
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // DIAGNÓSTICO TEMPORAL: se deshabilita UseExceptionHandler("/Error") porque ocultaba la excepción original
+    // ("An exception was thrown attempting to execute the error handler"). Restaurar cuando se resuelva el 500.
+    // app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseDeveloperExceptionPage();
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
@@ -143,10 +162,14 @@ app.MapPost("/logout", async (SignInManager<ApplicationUser> signInManager) =>
 });
 
 app.UseStaticFiles();
+app.Logger.LogInformation("Registrando controllers (MapControllers)...");
 app.MapControllers();
+app.Logger.LogInformation("Controllers registrados correctamente");
 app.MapHealthChecks("/health");
+app.Logger.LogInformation("Registrando Razor Components (MapRazorComponents)...");
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+app.Logger.LogInformation("Razor Components registrados correctamente");
 
 app.Logger.LogInformation("FinanzasIA iniciada correctamente (Backoffice + API integrada)");
 app.Logger.LogInformation("Aplicación escuchando en el puerto configurado");
