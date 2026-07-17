@@ -1,6 +1,5 @@
-const cacheName = 'finanzas-ia-v4';
+const cacheName = 'finanzas-ia-v5';
 const offlineAssets = [
-  '/',
   '/manifest.webmanifest',
   '/app-icon.svg',
   '/app-icon-512.png',
@@ -14,7 +13,8 @@ const offlineAssets = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(cacheName)
-      .then(cache => cache.addAll(offlineAssets))
+      // Cachear cada asset por separado: si uno falla, el service worker se instala igual.
+      .then(cache => Promise.allSettled(offlineAssets.map(asset => cache.add(asset))))
       .then(() => self.skipWaiting())
   );
 });
@@ -35,10 +35,13 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        const responseCopy = response.clone();
-        caches.open(cacheName).then(cache => cache.put(event.request, responseCopy));
+        // Solo cachear respuestas válidas y no redirigidas (la Cache API rechaza redirecciones).
+        if (response.ok && !response.redirected && response.type === 'basic') {
+          const responseCopy = response.clone();
+          caches.open(cacheName).then(cache => cache.put(event.request, responseCopy)).catch(() => { });
+        }
         return response;
       })
-      .catch(() => caches.match(event.request).then(response => response || caches.match('/')))
+      .catch(() => caches.match(event.request).then(response => response || caches.match('/manifest.webmanifest')))
   );
 });

@@ -9,9 +9,19 @@
             <strong>Finanzas IA como aplicación</strong>
             <span>@StatusText</span>
         </div>
-        <button class="btn btn-primary btn-sm" type="button" disabled="@(!_canInstall)" @onclick="InstallAsync">
+        <button class="btn btn-primary btn-sm" type="button" @onclick="InstallAsync">
             Instalar aplicación
         </button>
+        @if (_showManualInstructions)
+        {
+            <div class="alert alert-info mt-2 mb-0" role="alert">
+                Tu navegador no permite instalarla automáticamente desde este botón. Instalala manualmente:
+                <ul class="mb-0 mt-1">
+                    <li><strong>Android (Chrome/Edge):</strong> menú ⋮ → “Agregar a la pantalla principal” o “Instalar aplicación”.</li>
+                    <li><strong>iPhone (Safari):</strong> botón Compartir ▢↑ → “Agregar a pantalla de inicio”.</li>
+                </ul>
+            </div>
+        }
     </div>
 }
 
@@ -19,10 +29,11 @@
     private DotNetObjectReference<InstallAppPrompt>? _dotNetReference;
     private bool _canInstall;
     private bool _isInstalled;
+    private bool _showManualInstructions;
 
     private string StatusText => _canInstall
         ? "Podés instalarla en este dispositivo."
-        : "Si el navegador no muestra el botón todavía, abrila con Edge o Chrome y esperá unos segundos.";
+        : "Tocá el botón para instalarla o ver cómo hacerlo en tu dispositivo.";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -40,6 +51,14 @@
 
     private async Task InstallAsync()
     {
+        _canInstall = await JSRuntime.InvokeAsync<bool>("finanzasPwa.canInstall");
+        if (!_canInstall)
+        {
+            // El navegador no expone el prompt nativo: mostrar instrucciones manuales.
+            _showManualInstructions = true;
+            return;
+        }
+
         var installed = await JSRuntime.InvokeAsync<bool>("finanzasPwa.install");
         _isInstalled = installed || await JSRuntime.InvokeAsync<bool>("finanzasPwa.isInstalled");
         _canInstall = await JSRuntime.InvokeAsync<bool>("finanzasPwa.canInstall");
@@ -49,6 +68,7 @@
     public void InstallAvailable()
     {
         _canInstall = true;
+        _showManualInstructions = false;
         InvokeAsync(StateHasChanged);
     }
 
