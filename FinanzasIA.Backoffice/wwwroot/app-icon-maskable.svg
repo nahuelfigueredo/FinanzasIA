@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+	<linearGradient id="mbg" x1="0" y1="0" x2="1" y2="1">
+	  <stop offset="0" stop-color="#1b2a5e"/>
+	  <stop offset="1" stop-color="#0d1533"/>
+	</linearGradient>
+	<linearGradient id="mring" x1="0" y1="1" x2="1" y2="0">
+	  <stop offset="0" stop-color="#2bb3d8"/>
+	  <stop offset="1" stop-color="#7ed957"/>
+	</linearGradient>
+	<linearGradient id="mbar1" x1="0" y1="1" x2="0" y2="0">
+	  <stop offset="0" stop-color="#1899c9"/>
+	  <stop offset="1" stop-color="#2fc4b2"/>
+	</linearGradient>
+	<linearGradient id="mbar2" x1="0" y1="1" x2="0" y2="0">
+	  <stop offset="0" stop-color="#1fae9e"/>
+	  <stop offset="1" stop-color="#4ecb71"/>
+	</linearGradient>
+	<linearGradient id="mbar3" x1="0" y1="1" x2="0" y2="0">
+	  <stop offset="0" stop-color="#35bd8d"/>
+	  <stop offset="1" stop-color="#6fd44e"/>
+	</linearGradient>
+	<linearGradient id="mbar4" x1="0" y1="1" x2="0" y2="0">
+	  <stop offset="0" stop-color="#4cc86f"/>
+	  <stop offset="1" stop-color="#8ee03e"/>
+	</linearGradient>
+  </defs>
+  <!-- Fondo a sangre completa: obligatorio para iconos maskable (Android recorta la forma) -->
+  <rect width="512" height="512" fill="url(#mbg)"/>
+  <!-- Dibujo centrado dentro de la zona segura (~80% central) -->
+  <g transform="translate(256 256) scale(0.72) translate(-256 -256)">
+	<path d="M 330 90 A 160 160 0 1 0 330 422" fill="none" stroke="url(#mring)" stroke-width="26" stroke-linecap="round"/>
+	<rect x="148" y="292" width="46" height="120" rx="8" fill="url(#mbar1)"/>
+	<rect x="212" y="256" width="46" height="156" rx="8" fill="url(#mbar2)"/>
+	<rect x="276" y="222" width="46" height="190" rx="8" fill="url(#mbar3)"/>
+	<rect x="340" y="186" width="46" height="226" rx="8" fill="url(#mbar4)"/>
+	<path d="M150 272 L212 216 L258 244 L306 186 L352 142" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+	<path d="M318 128 L376 118 L366 176 Z" fill="#ffffff"/>
+	<circle cx="150" cy="272" r="14" fill="#ffffff"/>
+	<circle cx="212" cy="216" r="14" fill="#ffffff"/>
+	<circle cx="258" cy="244" r="14" fill="#ffffff"/>
+	<circle cx="370" cy="350" r="78" fill="#152252" stroke="url(#mring)" stroke-width="12"/>
+	<text x="370" y="384" font-family="Arial, Helvetica, sans-serif" font-size="100" font-weight="bold" fill="#ffffff" text-anchor="middle">$</text>
+  </g>
+</svg>

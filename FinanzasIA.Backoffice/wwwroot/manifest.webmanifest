@@ -52,10 +52,10 @@
   ],
   "icons": [
     {
-      "src": "app-icon.svg",
+      "src": "app-icon-maskable.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "app-icon.svg",
