@@ -16,7 +16,7 @@
       "short_name": "Movimiento",
       "description": "Registrar un ingreso o egreso",
       "url": "/movimientos",
-      "icons": 
+      "icons": [
         {
           "src": "app-icon.svg",
           "sizes": "any",
@@ -83,3 +83,4 @@
       "purpose": "any"
     }
   ]
+}
