@@ -30,7 +30,12 @@ if (!builder.Environment.IsDevelopment() &&
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        // DIAGNÓSTICO TEMPORAL: muestra la excepción completa del circuito en la consola del navegador
+        // y en los logs del servidor. Quitar cuando se estabilice.
+        options.DetailedErrors = true;
+    });
 
 // --- Servicios de la API integrada (controllers bajo /api, Swagger, WhatsApp, dominio) ---
 builder.Services.AddControllers();

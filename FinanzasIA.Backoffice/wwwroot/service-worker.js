@@ -1,4 +1,4 @@
-const cacheName = 'finanzas-ia-v5';
+const cacheName = 'finanzas-ia-v6';
 const offlineAssets = [
   '/manifest.webmanifest',
   '/app-icon.svg',
@@ -32,6 +32,13 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // No interceptar navegaciones ni el circuito de Blazor: siempre red directa.
+  // Esto evita que una versión cacheada rota deje la app inaccesible.
+  const url = new URL(event.request.url);
+  if (event.request.mode === 'navigate' || url.pathname.startsWith('/_blazor') || url.pathname.startsWith('/_framework')) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
@@ -42,6 +49,6 @@ self.addEventListener('fetch', event => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then(response => response || caches.match('/manifest.webmanifest')))
+      .catch(() => caches.match(event.request))
   );
 });
