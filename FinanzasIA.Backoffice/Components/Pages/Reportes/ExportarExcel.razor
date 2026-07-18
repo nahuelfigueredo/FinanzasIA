@@ -1,0 +1,90 @@
+@page "/reportes/exportar-excel"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Exportar Excel</PageTitle>
+
+<h1 class="mb-1">Exportar Excel</h1>
+<p class="text-muted mb-4">Descargá tus movimientos en formato compatible con Excel (CSV).</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+
+<div class="card">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" for="desde">Desde</label>
+                <InputDate id="desde" class="form-control" @bind-Value="_desde" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="hasta">Hasta</label>
+                <InputDate id="hasta" class="form-control" @bind-Value="_hasta" />
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-success w-100" @onclick="ExportarAsync" disabled="@_exporting">
+                    @(_exporting ? "Generando..." : "Descargar Excel (CSV)")
+                </button>
+            </div>
+        </div>
+        @if (_exported)
+        {
+            <div class="alert alert-success mt-3 mb-0" role="alert">Archivo descargado correctamente.</div>
+        }
+    </div>
+</div>
+
+@code {
+    private DateTime _desde = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime _hasta = DateTime.Today;
+    private bool _exporting;
+    private bool _exported;
+    private string? _errorMessage;
+
+    private async Task ExportarAsync()
+    {
+        _exporting = true;
+        _exported = false;
+        _errorMessage = null;
+        try
+        {
+            var movimientos = await ApiClient.GetMovimientosAsync();
+            var filtrados = movimientos
+                .Where(m => m.Fecha.Date >= _desde.Date && m.Fecha.Date <= _hasta.Date)
+                .OrderBy(m => m.Fecha);
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Fecha;Descripción;Categoría;Tipo;Monto");
+            foreach (var m in filtrados)
+            {
+                sb.AppendLine(string.Join(';',
+                    m.Fecha.ToString("dd/MM/yyyy"),
+                    Csv(m.Descripcion),
+                    Csv(m.CategoriaNombre),
+                    m.Tipo.ToString(),
+                    m.Monto.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            var fileName = $"movimientos_{_desde:yyyyMMdd}_{_hasta:yyyyMMdd}.csv";
+            await JSRuntime.InvokeVoidAsync("finanzasExport.downloadTextFile", fileName, "\uFEFF" + sb.ToString(), "text/csv;charset=utf-8");
+            _exported = true;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"No se pudo exportar: {ex.Message}";
+        }
+        finally
+        {
+            _exporting = false;
+        }
+    }
+
+    private static string Csv(string value)
+    {
+        var doubleQuote = new string('"', 1);
+        return doubleQuote + value.Replace(doubleQuote, doubleQuote + doubleQuote) + doubleQuote;
+    }
+}

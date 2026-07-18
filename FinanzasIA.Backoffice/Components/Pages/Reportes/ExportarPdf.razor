@@ -1,0 +1,107 @@
+@page "/reportes/exportar-pdf"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Exportar PDF</PageTitle>
+
+<h1 class="mb-1">Exportar PDF</h1>
+<p class="text-muted mb-4">Generá un PDF con tus movimientos usando la impresión del navegador (elegí "Guardar como PDF").</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="d-flex gap-3 align-items-end mb-3 flex-wrap">
+        <div>
+            <label class="form-label" for="desde">Desde</label>
+            <InputDate id="desde" class="form-control" @bind-Value="_desde" />
+        </div>
+        <div>
+            <label class="form-label" for="hasta">Hasta</label>
+            <InputDate id="hasta" class="form-control" @bind-Value="_hasta" />
+        </div>
+        <button type="button" class="btn btn-success" @onclick="ImprimirAsync">Generar PDF</button>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <h5>Movimientos del @_desde.ToString("dd/MM/yyyy") al @_hasta.ToString("dd/MM/yyyy")</h5>
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Filtrados)
+                    {
+                        <tr>
+                            <td>@m.Fecha.ToString("dd/MM/yyyy")</td>
+                            <td>@m.Descripcion</td>
+                            <td>@m.CategoriaNombre</td>
+                            <td>@m.Tipo</td>
+                            <td class="text-end">@m.Monto.ToString("C")</td>
+                        </tr>
+                    }
+                    @if (!Filtrados.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos en el rango elegido.</td></tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="4">Balance del período</td>
+                        <td class="text-end">@Balance.ToString("C")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private DateTime _desde = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime _hasta = DateTime.Today;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IReadOnlyList<MovimientoDto> Filtrados => _movimientos
+        .Where(m => m.Fecha.Date >= _desde.Date && m.Fecha.Date <= _hasta.Date)
+        .OrderBy(m => m.Fecha)
+        .ToList();
+
+    private decimal Balance => Filtrados.Sum(m => m.Tipo == TipoMovimiento.Ingreso ? m.Monto : -m.Monto);
+
+    private async Task ImprimirAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("finanzasExport.printPage");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

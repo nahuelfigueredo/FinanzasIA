@@ -1,0 +1,101 @@
+@page "/reportes/semanal"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Reporte semanal</PageTitle>
+
+<h1 class="mb-1">Reporte semanal</h1>
+<p class="text-muted mb-4">Resumen de los últimos 7 días.</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="metric-card income">
+                <span>Ingresos</span>
+                <strong>@Ingresos.ToString("C")</strong>
+                <small>Últimos 7 días</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card expense">
+                <span>Egresos</span>
+                <strong>@Egresos.ToString("C")</strong>
+                <small>Últimos 7 días</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card balance">
+                <span>Balance</span>
+                <strong>@((Ingresos - Egresos).ToString("C"))</strong>
+                <small>Neto semanal</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Semana.OrderByDescending(x => x.Fecha))
+                    {
+                        <tr>
+                            <td>@m.Fecha.ToString("dd/MM/yyyy")</td>
+                            <td>@m.Descripcion</td>
+                            <td>@m.CategoriaNombre</td>
+                            <td>@m.Tipo</td>
+                            <td class="text-end">@m.Monto.ToString("C")</td>
+                        </tr>
+                    }
+                    @if (!Semana.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos esta semana.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IEnumerable<MovimientoDto> Semana => _movimientos.Where(m => m.Fecha >= DateTime.Today.AddDays(-7));
+    private decimal Ingresos => Semana.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+    private decimal Egresos => Semana.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

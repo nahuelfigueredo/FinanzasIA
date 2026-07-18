@@ -1,0 +1,142 @@
+@page "/reportes/comparativas"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Comparativas</PageTitle>
+
+<h1 class="mb-1">Comparativas</h1>
+<p class="text-muted mb-4">Mes actual vs. mes anterior.</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th class="text-end text-capitalize">@MesAnterior.ToString("MMMM yyyy")</th>
+                        <th class="text-end text-capitalize">@MesActual.ToString("MMMM yyyy")</th>
+                        <th class="text-end">Variación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ingresos</td>
+                        <td class="text-end">@IngresosAnterior.ToString("C")</td>
+                        <td class="text-end">@IngresosActual.ToString("C")</td>
+                        <td class="text-end">@Variacion(IngresosAnterior, IngresosActual)</td>
+                    </tr>
+                    <tr>
+                        <td>Egresos</td>
+                        <td class="text-end">@EgresosAnterior.ToString("C")</td>
+                        <td class="text-end">@EgresosActual.ToString("C")</td>
+                        <td class="text-end">@Variacion(EgresosAnterior, EgresosActual)</td>
+                    </tr>
+                    <tr class="fw-bold">
+                        <td>Balance</td>
+                        <td class="text-end">@((IngresosAnterior - EgresosAnterior).ToString("C"))</td>
+                        <td class="text-end">@((IngresosActual - EgresosActual).ToString("C"))</td>
+                        <td class="text-end">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h5 class="mt-4 mb-3">Egresos por categoría</h5>
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th class="text-end text-capitalize">@MesAnterior.ToString("MMMM")</th>
+                        <th class="text-end text-capitalize">@MesActual.ToString("MMMM")</th>
+                        <th class="text-end">Variación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in CategoriasComparadas)
+                    {
+                        <tr>
+                            <td>@c.Categoria</td>
+                            <td class="text-end">@c.Anterior.ToString("C")</td>
+                            <td class="text-end">@c.Actual.ToString("C")</td>
+                            <td class="text-end">@Variacion(c.Anterior, c.Actual)</td>
+                        </tr>
+                    }
+                    @if (!CategoriasComparadas.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-muted">Sin egresos para comparar.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private DateTime MesActual => new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime MesAnterior => MesActual.AddMonths(-1);
+
+    private IEnumerable<MovimientoDto> DelMes(DateTime mes) =>
+        _movimientos.Where(m => m.Fecha.Year == mes.Year && m.Fecha.Month == mes.Month);
+
+    private decimal IngresosActual => DelMes(MesActual).Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+    private decimal EgresosActual => DelMes(MesActual).Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+    private decimal IngresosAnterior => DelMes(MesAnterior).Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+    private decimal EgresosAnterior => DelMes(MesAnterior).Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+
+    private IReadOnlyList<(string Categoria, decimal Anterior, decimal Actual)> CategoriasComparadas =>
+        DelMes(MesActual).Concat(DelMes(MesAnterior))
+            .Where(m => m.Tipo == TipoMovimiento.Egreso)
+            .Select(m => m.CategoriaNombre)
+            .Distinct()
+            .Select(cat => (
+                cat,
+                DelMes(MesAnterior).Where(m => m.Tipo == TipoMovimiento.Egreso && m.CategoriaNombre == cat).Sum(m => m.Monto),
+                DelMes(MesActual).Where(m => m.Tipo == TipoMovimiento.Egreso && m.CategoriaNombre == cat).Sum(m => m.Monto)))
+            .OrderByDescending(x => x.Item3)
+            .ToList();
+
+    private static string Variacion(decimal anterior, decimal actual)
+    {
+        if (anterior <= 0)
+        {
+            return actual > 0 ? "Nuevo" : "-";
+        }
+
+        var pct = (actual - anterior) / anterior * 100;
+        var flecha = pct >= 0 ? "▲" : "▼";
+        return $"{flecha} {Math.Abs(pct):0.#}%";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

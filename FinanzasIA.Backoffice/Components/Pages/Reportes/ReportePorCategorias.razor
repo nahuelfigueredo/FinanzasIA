@@ -1,0 +1,95 @@
+@page "/reportes/por-categorias"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Reporte por categorías</PageTitle>
+
+<h1 class="mb-1">Reporte por categorías</h1>
+<p class="text-muted mb-4">Distribución de ingresos y egresos por categoría.</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Movimientos</th>
+                        <th class="text-end">Total</th>
+                        <th style="width: 30%">Participación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Grupos)
+                    {
+                        <tr>
+                            <td>@g.Categoria</td>
+                            <td>@g.Tipo</td>
+                            <td class="text-end">@g.Cantidad</td>
+                            <td class="text-end">@g.Total.ToString("C")</td>
+                            <td>
+                                <div class="progress" role="progressbar" aria-valuenow="@((int)g.Porcentaje)" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar @(g.Tipo == TipoMovimiento.Ingreso ? "bg-success" : "bg-danger")" style="width: @g.Porcentaje.ToString("0", System.Globalization.CultureInfo.InvariantCulture)%">@g.Porcentaje.ToString("0")%</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Grupos.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos registrados.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IReadOnlyList<(string Categoria, TipoMovimiento Tipo, int Cantidad, decimal Total, decimal Porcentaje)> Grupos
+    {
+        get
+        {
+            var total = _movimientos.Sum(m => m.Monto);
+            return _movimientos
+                .GroupBy(m => new { m.CategoriaNombre, m.Tipo })
+                .Select(g => (
+                    g.Key.CategoriaNombre,
+                    g.Key.Tipo,
+                    g.Count(),
+                    g.Sum(m => m.Monto),
+                    total <= 0 ? 0 : g.Sum(m => m.Monto) / total * 100))
+                .OrderByDescending(x => x.Item4)
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,102 @@
+@page "/reportes/anual"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Reporte anual</PageTitle>
+
+<h1 class="mb-1">Reporte anual</h1>
+<p class="text-muted mb-4">Evolución mes a mes de @DateTime.Today.Year.</p>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="metric-card income">
+                <span>Ingresos del año</span>
+                <strong>@TotalIngresos.ToString("C")</strong>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card expense">
+                <span>Egresos del año</span>
+                <strong>@TotalEgresos.ToString("C")</strong>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card balance">
+                <span>Balance anual</span>
+                <strong>@((TotalIngresos - TotalEgresos).ToString("C"))</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th class="text-end">Ingresos</th>
+                        <th class="text-end">Egresos</th>
+                        <th class="text-end">Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var mes in Meses)
+                    {
+                        <tr>
+                            <td class="text-capitalize">@mes.Nombre</td>
+                            <td class="text-end">@mes.Ingresos.ToString("C")</td>
+                            <td class="text-end">@mes.Egresos.ToString("C")</td>
+                            <td class="text-end @(mes.Ingresos - mes.Egresos >= 0 ? "text-success" : "text-danger")">@((mes.Ingresos - mes.Egresos).ToString("C"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IEnumerable<MovimientoDto> DelAnio => _movimientos.Where(m => m.Fecha.Year == DateTime.Today.Year);
+    private decimal TotalIngresos => DelAnio.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+    private decimal TotalEgresos => DelAnio.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+
+    private IEnumerable<(string Nombre, decimal Ingresos, decimal Egresos)> Meses =>
+        Enumerable.Range(1, 12).Select(mes =>
+        {
+            var delMes = DelAnio.Where(m => m.Fecha.Month == mes);
+            return (
+                new DateTime(DateTime.Today.Year, mes, 1).ToString("MMMM"),
+                delMes.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto),
+                delMes.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto));
+        });
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

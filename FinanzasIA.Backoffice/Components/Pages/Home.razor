@@ -1,8 +1,12 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using FinanzasIA.Backoffice.Auth
+@using Microsoft.AspNetCore.Identity
 @inject FinanzasApiClient ApiClient
 @inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Inicio</PageTitle>
 
@@ -10,7 +14,7 @@
     <div class="row align-items-center g-4">
         <div class="col-lg-8">
             <span class="badge rounded-pill text-bg-light mb-3">@DateTime.Today.ToString("dddd d 'de' MMMM")</span>
-            <h1><span class="hero-title-icon" aria-hidden="true">💸</span> Hola, @_preferences.UserName 👋</h1>
+            <h1><span class="hero-title-icon" aria-hidden="true">💸</span> Hola, @_displayName 👋</h1>
             <p class="mb-0">Resumen rápido de tu balance, gastos, ingresos y recomendaciones para tomar mejores decisiones.</p>
         </div>
         <div class="col-lg-4 text-lg-end">
@@ -263,6 +267,7 @@ else
     private IReadOnlyCollection<CategoriaDto> _categorias = [];
     private IReadOnlyCollection<MovimientoDto> _movimientos = [];
     private PreferenceModel _preferences = new();
+    private string _displayName = "Usuario";
     private bool _isLoading = true;
     private bool _countUpStarted;
     private string? _errorMessage;
@@ -322,6 +327,26 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                var user = await UserManager.GetUserAsync(authState.User);
+                if (!string.IsNullOrWhiteSpace(user?.NombreCompleto))
+                {
+                    _displayName = user.NombreCompleto;
+                }
+                else if (!string.IsNullOrWhiteSpace(authState.User.Identity?.Name))
+                {
+                    _displayName = authState.User.Identity.Name;
+                }
+            }
+        }
+        catch
+        {
+        }
+
         try
         {
             var analisisTask = ApiClient.GetAnalisisIaAsync();

@@ -10,5 +10,8 @@ window.finanzasExport = {
         link.click();
         link.remove();
         URL.revokeObjectURL(url);
+    },
+    printPage() {
+        window.print();
     }
 };

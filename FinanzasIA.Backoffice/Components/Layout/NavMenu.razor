@@ -18,33 +18,45 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="categorias">
-                <span class="bi bi-tags-fill-nav-menu" aria-hidden="true"></span> Categorías
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
             <NavLink class="nav-link" href="movimientos">
                 <span class="bi bi-cash-stack-nav-menu" aria-hidden="true"></span> Movimientos
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="categorias">
+                <span class="bi bi-tags-fill-nav-menu" aria-hidden="true"></span> Categorías
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="analisis-ia">
-                <span class="bi bi-graph-up-arrow-nav-menu" aria-hidden="true"></span> Análisis IA
+                <span class="bi bi-graph-up-arrow-nav-menu" aria-hidden="true"></span> Inteligencia financiera
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="presupuesto">
-                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuesto
+                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuestos
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reporte-mensual">
-                <span class="bi bi-calendar-report-nav-menu" aria-hidden="true"></span> Reporte mensual
-            </NavLink>
+            <details class="nav-submenu" onclick="event.stopPropagation()">
+                <summary class="nav-link">
+                    <span class="bi bi-calendar-report-nav-menu" aria-hidden="true"></span> Reportes
+                </summary>
+                <div class="nav-submenu-items">
+                    <NavLink class="nav-link nav-sublink" href="reporte-mensual">Mensual</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/semanal">Semanal</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/anual">Anual</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/por-categorias">Por categorías</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/por-cuentas">Por cuentas</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/comparativas">Comparativas</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/exportar-pdf">Exportar PDF</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="reportes/exportar-excel">Exportar Excel</NavLink>
+                </div>
+            </details>
         </div>
 
         <div class="nav-item px-3">
