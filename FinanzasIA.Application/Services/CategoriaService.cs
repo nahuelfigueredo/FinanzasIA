@@ -8,10 +8,12 @@ namespace FinanzasIA.Application.Services;
 public class CategoriaService : ICategoriaService
 {
     private readonly ICategoriaRepository _categoriaRepository;
+    private readonly IMovimientoRepository _movimientoRepository;
 
-    public CategoriaService(ICategoriaRepository categoriaRepository)
+    public CategoriaService(ICategoriaRepository categoriaRepository, IMovimientoRepository movimientoRepository)
     {
         _categoriaRepository = categoriaRepository;
+        _movimientoRepository = movimientoRepository;
     }
 
     public async Task<IReadOnlyCollection<CategoriaDto>> GetAllAsync(string? usuarioId = null, CancellationToken cancellationToken = default)
@@ -60,6 +62,12 @@ public class CategoriaService : ICategoriaService
         if (categoria is null)
         {
             return false;
+        }
+
+        var movimientos = await _movimientoRepository.GetAllAsync(null, cancellationToken);
+        if (movimientos.Any(m => m.CategoriaId == id))
+        {
+            throw new InvalidOperationException("No se puede eliminar la categoría porque tiene movimientos asociados. Eliminá o reasigná esos movimientos primero.");
         }
 
         await _categoriaRepository.DeleteAsync(categoria, cancellationToken);

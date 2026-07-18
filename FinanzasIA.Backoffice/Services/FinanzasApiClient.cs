@@ -34,7 +34,16 @@ public class FinanzasApiClient
     public async Task DeleteCategoriaAsync(int id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.DeleteAsync($"api/categoria/{id}", cancellationToken);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ErrorResponse>(cancellationToken: cancellationToken);
+            throw new InvalidOperationException(error?.Message ?? "No se pudo eliminar la categoría.");
+        }
+    }
+
+    private sealed class ErrorResponse
+    {
+        public string? Message { get; set; }
     }
 
     public async Task<IReadOnlyCollection<MovimientoDto>> GetMovimientosAsync(CancellationToken cancellationToken = default)
