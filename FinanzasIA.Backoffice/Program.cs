@@ -119,8 +119,19 @@ catch (Exception ex)
     app.Logger.LogError(ex, "Error al aplicar migraciones; la aplicación continúa iniciando");
 }
 
+// Encabezados del proxy inverso (Render): deben procesarse ANTES que todo el resto del pipeline
+// para que Request.Scheme sea https y las cookies de autenticación/antiforgery funcionen.
+var forwardedOptions = new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+};
+// Render usa un proxy con IP dinámica: limpiar las listas para aceptar los encabezados reenviados.
+forwardedOptions.KnownNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
 // Middleware global de diagnóstico: loguea la excepción original completa (tipo, mensaje y stack trace)
-// antes de que cualquier otro handler la procese. Debe ir PRIMERO en el pipeline.
+// antes de que cualquier otro handler la procese.
 app.Use(async (context, next) =>
 {
     try
@@ -145,10 +156,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found");
-app.UseForwardedHeaders(new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
-{
-    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
-});
 if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
