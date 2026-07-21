@@ -11,6 +11,10 @@ public class Movimiento : BaseEntity
 
     public Categoria Categoria { get; set; } = null!;
 
+    public int? CuentaId { get; set; }
+
+    public Cuenta? Cuenta { get; set; }
+
     public string Descripcion { get; set; } = string.Empty;
 
     public decimal Monto { get; set; }

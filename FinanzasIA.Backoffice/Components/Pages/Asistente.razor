@@ -1,0 +1,205 @@
+@page "/asistente"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Asistente Financiero</PageTitle>
+
+<h1 class="mb-1">Asistente Financiero</h1>
+<p class="text-muted mb-4">Preguntale lo que quieras sobre tus finanzas: usa tus movimientos reales para responder.</p>
+
+<section class="sugerencias-panel mb-4">
+    <h2 class="sugerencias-titulo">💡 Sugerencias Inteligentes</h2>
+    @if (_cargandoSugerencias)
+    {
+        <p class="text-muted small mb-0">Analizando tus finanzas...</p>
+    }
+    else if (_sugerencias.Count == 0)
+    {
+        <p class="text-muted small mb-0">No hay sugerencias disponibles por el momento.</p>
+    }
+    else
+    {
+        <div class="sugerencias-grid">
+            @foreach (var s in _sugerencias)
+            {
+                <div class="sugerencia-card @CssTipo(s)">
+                    <span class="sugerencia-icono" aria-hidden="true">@s.Icono</span>
+                    <div>
+                        <div class="sugerencia-titulo">@s.Titulo</div>
+                        <div class="sugerencia-mensaje">@s.Mensaje</div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+<div class="asistente-chat card">
+    <div class="asistente-mensajes" id="asistente-scroll">
+        @if (_mensajes.Count == 0)
+        {
+            <div class="asistente-vacio">
+                <span class="asistente-vacio-icono" aria-hidden="true">🤖</span>
+                <p>¡Hola! Soy tu asistente financiero. Preguntame algo o usá una de las preguntas rápidas de abajo.</p>
+            </div>
+        }
+        @foreach (var mensaje in _mensajes)
+        {
+            <div class="asistente-burbuja @(mensaje.EsUsuario ? "usuario" : "bot")">
+                <div class="asistente-texto">@mensaje.Texto</div>
+                <div class="asistente-hora">@mensaje.Hora.ToString("HH:mm")</div>
+            </div>
+        }
+        @if (_isThinking)
+        {
+            <div class="asistente-burbuja bot">
+                <div class="asistente-texto text-muted">Pensando<span class="asistente-puntos">...</span></div>
+            </div>
+        }
+    </div>
+
+    <div class="asistente-rapidas">
+        @foreach (var rapida in _preguntasRapidas)
+        {
+            <button type="button" class="asistente-chip" disabled="@_isThinking" @onclick="() => EnviarAsync(rapida)">@rapida</button>
+        }
+    </div>
+
+    <div class="asistente-input">
+        <input class="form-control" placeholder="Escribí tu pregunta..." @bind="_pregunta" @bind:event="oninput"
+               @onkeydown="OnKeyDown" disabled="@_isThinking" />
+        <button type="button" class="btn btn-primary" disabled="@(_isThinking || string.IsNullOrWhiteSpace(_pregunta))" @onclick="() => EnviarAsync(_pregunta)">
+            Enviar
+        </button>
+    </div>
+</div>
+
+@code {
+    private readonly List<ChatMensaje> _mensajes = [];
+    private string _pregunta = string.Empty;
+    private bool _isThinking;
+
+    private readonly List<SugerenciaDto> _sugerencias = [];
+    private bool _cargandoSugerencias = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await CargarSugerenciasAsync();
+    }
+
+    private async Task CargarSugerenciasAsync()
+    {
+        try
+        {
+            decimal? presupuesto = null;
+            try
+            {
+                var preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
+                if (preferences?.MonthlyBudget > 0)
+                {
+                    presupuesto = preferences.MonthlyBudget;
+                }
+            }
+            catch
+            {
+                // sin preferencias, se analiza sin presupuesto
+            }
+
+            var sugerencias = await ApiClient.GetSugerenciasAsync(presupuesto);
+            _sugerencias.Clear();
+            _sugerencias.AddRange(sugerencias);
+        }
+        catch
+        {
+            // las sugerencias son opcionales: si fallan, el chat sigue funcionando
+        }
+        finally
+        {
+            _cargandoSugerencias = false;
+            StateHasChanged();
+        }
+    }
+
+    private static string CssTipo(SugerenciaDto s) => s.Tipo switch
+    {
+        TipoSugerencia.Advertencia => "advertencia",
+        TipoSugerencia.Exito => "exito",
+        _ => "info"
+    };
+
+    private readonly string[] _preguntasRapidas =
+    [
+        "¿Cuánto gasté este mes?",
+        "¿Cuál es mi categoría con más gastos?",
+        "Comparar este mes con el anterior",
+        "¿Cómo puedo ahorrar?",
+        "Resumen del mes"
+    ];
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_pregunta) && !_isThinking)
+        {
+            await EnviarAsync(_pregunta);
+        }
+    }
+
+    private async Task EnviarAsync(string pregunta)
+    {
+        if (string.IsNullOrWhiteSpace(pregunta) || _isThinking)
+        {
+            return;
+        }
+
+        var texto = pregunta.Trim();
+        _pregunta = string.Empty;
+        _mensajes.Add(new ChatMensaje(texto, true, DateTime.Now));
+        _isThinking = true;
+        await ScrollAlFinalAsync();
+
+        try
+        {
+            var respuesta = await ApiClient.PreguntarAsistenteAsync(texto);
+            _mensajes.Add(new ChatMensaje(respuesta.Respuesta, false, DateTime.Now));
+        }
+        catch (Exception)
+        {
+            _mensajes.Add(new ChatMensaje("Ups, no pude responder en este momento. Verificá tu conexión e intentá de nuevo. 🙏", false, DateTime.Now));
+        }
+        finally
+        {
+            _isThinking = false;
+            await ScrollAlFinalAsync();
+        }
+    }
+
+    private async Task ScrollAlFinalAsync()
+    {
+        StateHasChanged();
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "const el = document.getElementById('asistente-scroll'); if (el) { el.scrollTop = el.scrollHeight; }");
+        }
+        catch
+        {
+            // el scroll es cosmético; no debe romper el chat
+        }
+    }
+
+    private sealed record ChatMensaje(string Texto, bool EsUsuario, DateTime Hora);
+
+    private sealed class PreferenceModel
+    {
+        public string? UserName { get; set; }
+        public string? Currency { get; set; }
+        public decimal MonthlyBudget { get; set; }
+        public int FiscalDay { get; set; }
+        public bool ShowDemoHint { get; set; }
+    }
+}

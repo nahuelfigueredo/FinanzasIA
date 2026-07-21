@@ -77,4 +77,46 @@ public class FinanzasApiClient
         var analisis = await _httpClient.GetFromJsonAsync<AnalisisFinancieroDto>("api/ia/analisis", cancellationToken);
         return analisis ?? new AnalisisFinancieroDto();
     }
+
+    public async Task<IReadOnlyCollection<CuentaDto>> GetCuentasAsync(CancellationToken cancellationToken = default)
+    {
+        var cuentas = await _httpClient.GetFromJsonAsync<List<CuentaDto>>("api/cuenta", cancellationToken);
+        return cuentas ?? [];
+    }
+
+    public async Task<CuentaDto> CreateCuentaAsync(CreateCuentaDto dto, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/cuenta", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<CuentaDto>(cancellationToken))!;
+    }
+
+    public async Task<CuentaDto> UpdateCuentaAsync(int id, UpdateCuentaDto dto, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsJsonAsync($"api/cuenta/{id}", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<CuentaDto>(cancellationToken))!;
+    }
+
+    public async Task DeleteCuentaAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"api/cuenta/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<AsistenteRespuestaDto> PreguntarAsistenteAsync(string pregunta, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/asistente/preguntar", new AsistentePreguntaDto { Pregunta = pregunta }, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AsistenteRespuestaDto>(cancellationToken))!;
+    }
+
+    public async Task<IReadOnlyCollection<SugerenciaDto>> GetSugerenciasAsync(decimal? presupuesto = null, CancellationToken cancellationToken = default)
+    {
+        var url = presupuesto is > 0
+            ? $"api/asistente/sugerencias?presupuesto={presupuesto.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : "api/asistente/sugerencias";
+        var sugerencias = await _httpClient.GetFromJsonAsync<List<SugerenciaDto>>(url, cancellationToken);
+        return sugerencias ?? [];
+    }
 }

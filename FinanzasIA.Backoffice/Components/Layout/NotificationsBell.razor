@@ -1,0 +1,149 @@
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@using FinanzasIA.Application.DTOs
+@using FinanzasIA.Core.Enums
+
+<div class="notifications-bell">
+    <button type="button" class="theme-toggle" @onclick="TogglePanel" title="Notificaciones">
+        <span aria-hidden="true">🔔</span>
+        @if (_notifications.Count > 0)
+        {
+            <span class="notifications-badge">@_notifications.Count</span>
+        }
+    </button>
+
+    @if (_isOpen)
+    {
+        <div class="notifications-panel">
+            <div class="notifications-header">
+                <strong>Notificaciones</strong>
+                <button type="button" class="btn-close" aria-label="Cerrar" @onclick="TogglePanel"></button>
+            </div>
+            @if (_notifications.Count == 0)
+            {
+                <p class="text-muted small px-3 py-2 mb-0">No tenés notificaciones nuevas.</p>
+            }
+            else
+            {
+                <ul class="notifications-list">
+                    @foreach (var n in _notifications)
+                    {
+                        <li class="notification-item @n.Severity">
+                            <span class="notification-icon" aria-hidden="true">@n.Icon</span>
+                            <div>
+                                <div class="notification-title">@n.Title</div>
+                                <div class="notification-message">@n.Message</div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isOpen;
+    private bool _loaded;
+    private readonly List<NotificationItem> _notifications = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await LoadNotificationsAsync();
+        StateHasChanged();
+    }
+
+    private void TogglePanel() => _isOpen = !_isOpen;
+
+    private async Task LoadNotificationsAsync()
+    {
+        if (_loaded)
+        {
+            return;
+        }
+
+        try
+        {
+            var movimientos = await ApiClient.GetMovimientosAsync();
+            decimal monthlyBudget = 0;
+            try
+            {
+                var preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
+                monthlyBudget = preferences?.MonthlyBudget ?? 0;
+            }
+            catch
+            {
+                // preferencias no disponibles; se omiten alertas de presupuesto
+            }
+
+            var hoy = DateTime.Today;
+            var delMes = movimientos.Where(m => m.Fecha.Year == hoy.Year && m.Fecha.Month == hoy.Month).ToList();
+            var egresosMes = delMes.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+            var ingresosMes = delMes.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+
+            _notifications.Clear();
+
+            if (monthlyBudget > 0)
+            {
+                var porcentaje = egresosMes / monthlyBudget * 100;
+                if (porcentaje >= 100)
+                {
+                    _notifications.Add(new NotificationItem("⛔", "Presupuesto superado",
+                        $"Gastaste {egresosMes:C} de un presupuesto de {monthlyBudget:C} este mes.", "danger"));
+                }
+                else if (porcentaje >= 80)
+                {
+                    _notifications.Add(new NotificationItem("⚠️", "Cerca del límite",
+                        $"Ya usaste el {porcentaje:0}% de tu presupuesto mensual.", "warning"));
+                }
+            }
+
+            if (ingresosMes > 0 && egresosMes > ingresosMes)
+            {
+                _notifications.Add(new NotificationItem("📉", "Balance negativo",
+                    $"Este mes tus egresos ({egresosMes:C}) superan tus ingresos ({ingresosMes:C}).", "danger"));
+            }
+
+            var gastoAlto = delMes
+                .Where(m => m.Tipo == TipoMovimiento.Egreso)
+                .OrderByDescending(m => m.Monto)
+                .FirstOrDefault();
+            if (gastoAlto is not null && egresosMes > 0 && gastoAlto.Monto / egresosMes >= 0.4m && delMes.Count(m => m.Tipo == TipoMovimiento.Egreso) > 1)
+            {
+                _notifications.Add(new NotificationItem("💸", "Gasto destacado",
+                    $"\"{gastoAlto.Descripcion}\" ({gastoAlto.Monto:C}) representa gran parte de tus egresos del mes.", "info"));
+            }
+
+            if (movimientos.Count > 0 && movimientos.Max(m => m.Fecha) < hoy.AddDays(-7))
+            {
+                _notifications.Add(new NotificationItem("🗓️", "Sin movimientos recientes",
+                    "Hace más de una semana que no registrás movimientos. ¡Mantené tus finanzas al día!", "info"));
+            }
+        }
+        catch
+        {
+            // silencioso: las notificaciones no deben romper el layout
+        }
+        finally
+        {
+            _loaded = true;
+        }
+    }
+
+    private sealed record NotificationItem(string Icon, string Title, string Message, string Severity);
+
+    private sealed class PreferenceModel
+    {
+        public string? UserName { get; set; }
+        public string? Currency { get; set; }
+        public decimal MonthlyBudget { get; set; }
+        public int FiscalDay { get; set; }
+        public bool ShowDemoHint { get; set; }
+    }
+}

@@ -19,6 +19,7 @@ public class MovimientoRepository : IMovimientoRepository
         var query = _context.Movimientos
             .AsNoTracking()
             .Include(x => x.Categoria)
+            .Include(x => x.Cuenta)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(usuarioId))
@@ -35,6 +36,7 @@ public class MovimientoRepository : IMovimientoRepository
     {
         return await _context.Movimientos
             .Include(x => x.Categoria)
+            .Include(x => x.Cuenta)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 

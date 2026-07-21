@@ -10,7 +10,12 @@ public static class DependencyInjection
     {
         services.AddScoped<ICategoriaService, CategoriaService>();
         services.AddScoped<IMovimientoService, MovimientoService>();
+        services.AddScoped<ICuentaService, CuentaService>();
         services.AddScoped<IAnalisisFinancieroService, AnalisisFinancieroService>();
+        services.AddScoped<IAsistenteIAProvider, ReglasAsistenteProvider>();
+        services.AddScoped<IAsistenteService, AsistenteService>();
+        services.AddScoped<IFinanzasAnalyzer, FinanzasAnalyzer>();
+        services.AddScoped<ISugerenciasService, SugerenciasService>();
 
         return services;
     }

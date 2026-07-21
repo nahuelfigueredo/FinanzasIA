@@ -11,6 +11,8 @@ public class MovimientoFormModel
     [Range(1, int.MaxValue, ErrorMessage = "Seleccioná una categoría válida.")]
     public int CategoriaId { get; set; }
 
+    public int? CuentaId { get; set; }
+
     [MaxLength(300, ErrorMessage = "La descripción no puede superar los 300 caracteres.")]
     public string Descripcion { get; set; } = string.Empty;
 

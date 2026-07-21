@@ -1,0 +1,201 @@
+@page "/cuentas"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@using System.ComponentModel.DataAnnotations
+
+<PageTitle>Cuentas</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🏦</span>
+    <div>
+        <h1>Cuentas</h1>
+        <p>Administrá tus cuentas: efectivo, banco, billeteras virtuales y más.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+else if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success" role="alert">@_successMessage</div>
+}
+
+<div class="dashboard-panel mb-4">
+<h4 class="mb-3"><span class="section-icon" aria-hidden="true">✨</span> @(_editingId.HasValue ? "Editar cuenta" : "Nueva cuenta")</h4>
+<EditForm FormName="cuenta-form" Model="_form" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <InputText class="form-control" @bind-Value="_form.Nombre" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tipo</label>
+            <InputSelect class="form-select" @bind-Value="_form.Tipo">
+                @foreach (var tipo in Enum.GetValues<TipoCuenta>())
+                {
+                    <option value="@tipo">@TipoLabel(tipo)</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">
+                💾 @(_editingId.HasValue ? "Actualizar" : "Crear")
+            </button>
+        </div>
+    </div>
+</EditForm>
+</div>
+
+@if (_editingId.HasValue)
+{
+    <button class="btn btn-link p-0 mb-3" @onclick="CancelEdit">Cancelar edición</button>
+}
+
+@if (_cuentas.Count == 0)
+{
+    <div class="alert alert-info" role="alert">
+        No hay cuentas cargadas todavía. Creá tu primera cuenta (por ejemplo "Efectivo" o "Banco").
+    </div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cuenta in _cuentas)
+            {
+                <tr>
+                    <td>@cuenta.Id</td>
+                    <td>@cuenta.Nombre</td>
+                    <td>@TipoLabel(cuenta.Tipo)</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Edit(cuenta)">✏️ Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(cuenta.Id)">🗑️ Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private readonly List<CuentaDto> _cuentas = [];
+    private CuentaFormModel _form = new();
+    private int? _editingId;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCuentasAsync();
+    }
+
+    private static string TipoLabel(TipoCuenta tipo) => tipo switch
+    {
+        TipoCuenta.Efectivo => "Efectivo",
+        TipoCuenta.Banco => "Banco",
+        TipoCuenta.BilleteraVirtual => "Billetera virtual",
+        TipoCuenta.TarjetaCredito => "Tarjeta de crédito",
+        _ => "Otro"
+    };
+
+    private async Task LoadCuentasAsync()
+    {
+        try
+        {
+            var cuentas = await ApiClient.GetCuentasAsync();
+            _cuentas.Clear();
+            _cuentas.AddRange(cuentas);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            if (_editingId.HasValue)
+            {
+                await ApiClient.UpdateCuentaAsync(_editingId.Value, new UpdateCuentaDto
+                {
+                    Nombre = _form.Nombre,
+                    Tipo = _form.Tipo
+                });
+                _successMessage = "Cuenta actualizada correctamente.";
+            }
+            else
+            {
+                await ApiClient.CreateCuentaAsync(new CreateCuentaDto
+                {
+                    Nombre = _form.Nombre,
+                    Tipo = _form.Tipo
+                });
+                _successMessage = "Cuenta creada correctamente.";
+            }
+
+            _editingId = null;
+            _form = new CuentaFormModel();
+            await LoadCuentasAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void Edit(CuentaDto cuenta)
+    {
+        _editingId = cuenta.Id;
+        _form = new CuentaFormModel
+        {
+            Nombre = cuenta.Nombre,
+            Tipo = cuenta.Tipo
+        };
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _errorMessage = null;
+        _successMessage = null;
+        try
+        {
+            await ApiClient.DeleteCuentaAsync(id);
+            await LoadCuentasAsync();
+            _successMessage = "Cuenta eliminada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _form = new CuentaFormModel();
+    }
+
+    private class CuentaFormModel
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        [MaxLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
+        public string Nombre { get; set; } = string.Empty;
+        public TipoCuenta Tipo { get; set; } = TipoCuenta.Efectivo;
+    }
+}

@@ -1,12 +1,104 @@
 @page "/reportes/por-cuentas"
 @rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
 
 <PageTitle>Reporte por cuentas</PageTitle>
 
 <h1 class="mb-1">Reporte por cuentas</h1>
 <p class="text-muted mb-4">Distribución de movimientos por cuenta.</p>
 
-<div class="alert alert-info" role="alert">
-    <strong>Próximamente.</strong> La gestión de cuentas (efectivo, banco, billeteras virtuales) todavía no está disponible.
-    Cuando agregues cuentas a tus movimientos, acá vas a ver el detalle por cada una.
-</div>
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+}
+else if (_isLoading)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Cuenta</th>
+                        <th class="text-end">Movimientos</th>
+                        <th class="text-end">Ingresos</th>
+                        <th class="text-end">Egresos</th>
+                        <th class="text-end">Balance</th>
+                        <th style="width: 25%">Participación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Grupos)
+                    {
+                        <tr>
+                            <td>@g.Cuenta</td>
+                            <td class="text-end">@g.Cantidad</td>
+                            <td class="text-end text-success">@g.Ingresos.ToString("C")</td>
+                            <td class="text-end text-danger">@g.Egresos.ToString("C")</td>
+                            <td class="text-end fw-semibold @(g.Balance >= 0 ? "text-success" : "text-danger")">@g.Balance.ToString("C")</td>
+                            <td>
+                                <div class="progress" role="progressbar" aria-valuenow="@((int)g.Porcentaje)" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar" style="width: @g.Porcentaje.ToString("0", System.Globalization.CultureInfo.InvariantCulture)%">@g.Porcentaje.ToString("0")%</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Grupos.Any())
+                    {
+                        <tr><td colspan="6" class="text-center text-muted">Sin movimientos registrados. Asigná cuentas a tus movimientos para ver el detalle acá.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private IReadOnlyList<(string Cuenta, int Cantidad, decimal Ingresos, decimal Egresos, decimal Balance, decimal Porcentaje)> Grupos
+    {
+        get
+        {
+            var total = _movimientos.Sum(m => m.Monto);
+            return _movimientos
+                .GroupBy(m => string.IsNullOrWhiteSpace(m.CuentaNombre) ? "Sin cuenta" : m.CuentaNombre)
+                .Select(g =>
+                {
+                    var ingresos = g.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto);
+                    var egresos = g.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto);
+                    return (
+                        Cuenta: g.Key,
+                        Cantidad: g.Count(),
+                        Ingresos: ingresos,
+                        Egresos: egresos,
+                        Balance: ingresos - egresos,
+                        Porcentaje: total <= 0 ? 0 : g.Sum(m => m.Monto) / total * 100);
+                })
+                .OrderByDescending(x => x.Cantidad)
+                .ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _movimientos = await ApiClient.GetMovimientosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
+

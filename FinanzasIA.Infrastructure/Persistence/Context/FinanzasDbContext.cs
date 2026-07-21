@@ -15,6 +15,8 @@ public class FinanzasDbContext : DbContext
 
     public DbSet<Categoria> Categorias => Set<Categoria>();
 
+    public DbSet<Cuenta> Cuentas => Set<Cuenta>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -64,6 +66,23 @@ public class FinanzasDbContext : DbContext
                   .WithMany(x => x.Movimientos)
                   .HasForeignKey(x => x.CategoriaId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Cuenta)
+                  .WithMany(x => x.Movimientos)
+                  .HasForeignKey(x => x.CuentaId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Cuenta>(entity =>
+        {
+            entity.Property(x => x.Nombre)
+                  .HasMaxLength(100)
+                  .IsRequired();
+
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450);
+
+            entity.HasIndex(x => x.UsuarioId);
         });
     }
 }

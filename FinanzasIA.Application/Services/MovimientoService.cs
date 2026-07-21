@@ -42,6 +42,7 @@ public class MovimientoService : IMovimientoService
         {
             Tipo = dto.Tipo,
             CategoriaId = dto.CategoriaId,
+            CuentaId = dto.CuentaId,
             Descripcion = dto.Descripcion,
             Monto = dto.Monto,
             Fecha = dto.Fecha,
@@ -68,6 +69,7 @@ public class MovimientoService : IMovimientoService
 
         movimiento.Tipo = dto.Tipo;
         movimiento.CategoriaId = dto.CategoriaId;
+        movimiento.CuentaId = dto.CuentaId;
         movimiento.Descripcion = dto.Descripcion;
         movimiento.Monto = dto.Monto;
         movimiento.Fecha = dto.Fecha;
@@ -97,6 +99,8 @@ public class MovimientoService : IMovimientoService
             Tipo = movimiento.Tipo,
             CategoriaId = movimiento.CategoriaId,
             CategoriaNombre = movimiento.Categoria?.Nombre ?? string.Empty,
+            CuentaId = movimiento.CuentaId,
+            CuentaNombre = movimiento.Cuenta?.Nombre,
             Descripcion = movimiento.Descripcion,
             Monto = movimiento.Monto,
             Fecha = movimiento.Fecha

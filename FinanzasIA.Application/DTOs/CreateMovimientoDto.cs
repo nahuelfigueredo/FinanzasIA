@@ -12,6 +12,8 @@ public class CreateMovimientoDto
     [Range(1, int.MaxValue)]
     public int CategoriaId { get; set; }
 
+    public int? CuentaId { get; set; }
+
     [MaxLength(300)]
     public string Descripcion { get; set; } = string.Empty;
 

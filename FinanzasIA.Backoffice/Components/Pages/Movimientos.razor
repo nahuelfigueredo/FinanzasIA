@@ -56,7 +56,7 @@ else if (!string.IsNullOrWhiteSpace(_successMessage))
                 }
             </InputSelect>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Categoría</label>
             <InputSelect class="form-select" @bind-Value="_form.CategoriaId">
                 <option value="0">Seleccione...</option>
@@ -66,7 +66,17 @@ else if (!string.IsNullOrWhiteSpace(_successMessage))
                 }
             </InputSelect>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <label class="form-label">Cuenta</label>
+            <InputSelect class="form-select" @bind-Value="_form.CuentaId">
+                <option value="">Sin cuenta</option>
+                @foreach (var cuenta in _cuentas)
+                {
+                    <option value="@cuenta.Id">@cuenta.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="col-md-2">
             <label class="form-label">Descripción</label>
             <InputText class="form-control" @bind-Value="_form.Descripcion" />
         </div>
@@ -132,6 +142,7 @@ else
 
 @code {
     private readonly List<CategoriaDto> _categorias = [];
+    private readonly List<CuentaDto> _cuentas = [];
     private readonly List<MovimientoDto> _movimientos = [];
     private MovimientoFormModel _form = new();
     private int? _editingId;
@@ -150,9 +161,13 @@ else
         {
             var categorias = await ApiClient.GetCategoriasAsync();
             var movimientos = await ApiClient.GetMovimientosAsync();
+            var cuentas = await ApiClient.GetCuentasAsync();
 
             _categorias.Clear();
             _categorias.AddRange(categorias);
+
+            _cuentas.Clear();
+            _cuentas.AddRange(cuentas);
 
             _movimientos.Clear();
             _movimientos.AddRange(movimientos);
@@ -182,6 +197,7 @@ else
                 {
                     Tipo = _form.Tipo,
                     CategoriaId = _form.CategoriaId,
+                    CuentaId = _form.CuentaId,
                     Descripcion = _form.Descripcion,
                     Monto = _form.Monto,
                     Fecha = _form.Fecha
@@ -195,6 +211,7 @@ else
                 {
                     Tipo = _form.Tipo,
                     CategoriaId = _form.CategoriaId,
+                    CuentaId = _form.CuentaId,
                     Descripcion = _form.Descripcion,
                     Monto = _form.Monto,
                     Fecha = _form.Fecha
@@ -220,6 +237,7 @@ else
         {
             Tipo = movimiento.Tipo,
             CategoriaId = movimiento.CategoriaId,
+            CuentaId = movimiento.CuentaId,
             Descripcion = movimiento.Descripcion,
             Monto = movimiento.Monto,
             Fecha = movimiento.Fecha
