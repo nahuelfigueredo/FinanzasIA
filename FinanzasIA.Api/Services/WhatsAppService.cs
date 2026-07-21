@@ -55,6 +55,11 @@ public class WhatsAppService : IWhatsAppService
         request.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", _options.AccessToken);
 
+
+        Console.WriteLine($"PhoneNumberId: {_options.PhoneNumberId}");
+        Console.WriteLine($"AccessToken longitud: {_options.AccessToken.Length}");
+        Console.WriteLine($"AccessToken inicio: {_options.AccessToken[..15]}...");
+
         using var response = await _httpClient.SendAsync(request, cancellationToken);
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
