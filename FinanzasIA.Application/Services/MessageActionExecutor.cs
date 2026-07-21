@@ -42,6 +42,10 @@ public class MessageActionExecutor : IMessageActionExecutor
                 => await RegistrarMovimientoAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ConsultaSaldo => await ResponderSaldoAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ResumenMensual => await ResponderResumenAsync(interpretado, usuarioId, cancellationToken),
+            MessageIntent.GastosHoy => await ResponderGastosPeriodoAsync(interpretado, usuarioId, DateTime.Today, DateTime.Today.AddDays(1), "hoy", cancellationToken),
+            MessageIntent.GastosMes => await ResponderGastosPeriodoAsync(interpretado, usuarioId, InicioMes(), DateTime.Today.AddDays(1), "este mes", cancellationToken),
+            MessageIntent.IngresosMes => await ResponderIngresosMesAsync(interpretado, usuarioId, cancellationToken),
+            MessageIntent.UltimosMovimientos => await ResponderUltimosMovimientosAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ConsultaCategoria => await ResponderCategoriaAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ConsultaPresupuesto => ResponderPresupuesto(interpretado),
             MessageIntent.Ayuda => ResponderAyuda(interpretado),
@@ -196,6 +200,77 @@ public class MessageActionExecutor : IMessageActionExecutor
 
     private static MensajeProcesadoResultDto ResponderPresupuesto(MensajeInterpretadoDto interpretado) =>
         Exitoso(interpretado, "Podés ver y ajustar tu presupuesto mensual en la sección Presupuestos de FinanzasIA. 🎯");
+
+    /// <summary>Total de gastos en un rango de fechas [desde, hasta) con desglose por categoría.</summary>
+    private async Task<MensajeProcesadoResultDto> ResponderGastosPeriodoAsync(MensajeInterpretadoDto interpretado, string? usuarioId, DateTime desde, DateTime hasta, string etiqueta, CancellationToken cancellationToken)
+    {
+        var movimientos = await _movimientoService.GetAllAsync(usuarioId, cancellationToken);
+        var gastos = movimientos
+            .Where(m => m.Tipo == TipoMovimiento.Egreso && m.Fecha >= desde && m.Fecha < hasta)
+            .ToList();
+
+        if (gastos.Count == 0)
+        {
+            return Exitoso(interpretado, $"No registraste gastos {etiqueta}. 🎉");
+        }
+
+        var porCategoria = gastos
+            .GroupBy(m => m.CategoriaNombre)
+            .OrderByDescending(g => g.Sum(m => m.Monto))
+            .Take(5)
+            .Select(g => $"- {g.Key}: {Moneda(g.Sum(m => m.Monto))}");
+
+        return Exitoso(interpretado,
+            $"Gastos de {etiqueta} 💸\n" +
+            $"Total: {Moneda(gastos.Sum(m => m.Monto))} ({gastos.Count} movimientos)\n\n" +
+            string.Join("\n", porCategoria));
+    }
+
+    private async Task<MensajeProcesadoResultDto> ResponderIngresosMesAsync(MensajeInterpretadoDto interpretado, string? usuarioId, CancellationToken cancellationToken)
+    {
+        var movimientos = await _movimientoService.GetAllAsync(usuarioId, cancellationToken);
+        var ingresos = movimientos
+            .Where(m => m.Tipo == TipoMovimiento.Ingreso && m.Fecha >= InicioMes())
+            .ToList();
+
+        if (ingresos.Count == 0)
+        {
+            return Exitoso(interpretado, "No registraste ingresos este mes todavía.");
+        }
+
+        var detalle = ingresos
+            .OrderByDescending(m => m.Fecha)
+            .Take(5)
+            .Select(m => $"- {m.Fecha:dd/MM} {m.Descripcion}: {Moneda(m.Monto)}");
+
+        return Exitoso(interpretado,
+            "Ingresos del mes 💰\n" +
+            $"Total: {Moneda(ingresos.Sum(m => m.Monto))}\n\n" +
+            string.Join("\n", detalle));
+    }
+
+    private async Task<MensajeProcesadoResultDto> ResponderUltimosMovimientosAsync(MensajeInterpretadoDto interpretado, string? usuarioId, CancellationToken cancellationToken)
+    {
+        var movimientos = await _movimientoService.GetAllAsync(usuarioId, cancellationToken);
+        var ultimos = movimientos
+            .OrderByDescending(m => m.Fecha)
+            .ThenByDescending(m => m.Id)
+            .Take(5)
+            .ToList();
+
+        if (ultimos.Count == 0)
+        {
+            return Exitoso(interpretado, "Todavía no tenés movimientos registrados.");
+        }
+
+        var detalle = ultimos.Select(m =>
+            $"- {m.Fecha:dd/MM} {(m.Tipo == TipoMovimiento.Ingreso ? "➕" : "➖")} {m.Descripcion} ({m.CategoriaNombre}): {Moneda(m.Monto)}");
+
+        return Exitoso(interpretado,
+            "Últimos movimientos 📋\n\n" + string.Join("\n", detalle));
+    }
+
+    private static DateTime InicioMes() => new(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     private static MensajeProcesadoResultDto ResponderAyuda(MensajeInterpretadoDto interpretado) =>
         Exitoso(interpretado,

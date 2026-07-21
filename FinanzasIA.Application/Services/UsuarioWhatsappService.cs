@@ -159,6 +159,12 @@ public class UsuarioWhatsappService : IUsuarioWhatsappService
         return vinculo.UsuarioId;
     }
 
+    public async Task<bool> NumeroPendienteDeVerificacionAsync(string numeroTelefono, CanalMensajeria canal = CanalMensajeria.WhatsApp, CancellationToken cancellationToken = default)
+    {
+        var vinculo = await _repository.BuscarPorNumeroAsync(Normalizar(numeroTelefono), canal, cancellationToken);
+        return vinculo is not null && (!vinculo.Verificado || !vinculo.Activo);
+    }
+
     private async Task<UsuarioWhatsapp?> ObtenerVinculoDelUsuarioAsync(int id, string usuarioId, CancellationToken cancellationToken)
     {
         var vinculos = await _repository.BuscarPorUsuarioAsync(usuarioId, cancellationToken);

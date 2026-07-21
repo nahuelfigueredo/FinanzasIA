@@ -20,6 +20,7 @@ public static class DependencyInjection
         // Motor genérico de procesamiento de mensajes.
         // Para pasar a OpenAI: reemplazar RuleBasedMessageInterpreter por OpenAIMessageInterpreter.
         services.AddScoped<IMessageInterpreter, RuleBasedMessageInterpreter>();
+        services.AddScoped<IMensajeFinancieroParser, MensajeFinancieroParser>();
         services.AddScoped<IMessageActionExecutor, MessageActionExecutor>();
         services.AddScoped<IMessageProcessor, MessageProcessor>();
 

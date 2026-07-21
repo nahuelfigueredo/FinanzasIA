@@ -16,9 +16,11 @@ public class ApiKeyMiddleware
     {
         // Solo protege rutas /api; el resto (Blazor, Swagger, health) es de acceso libre.
         // Sin API key configurada (desarrollo local) o rutas públicas: no se exige.
+        // El webhook de WhatsApp (GET/POST /api/whatsapp/webhook) queda excluido para que
+        // Meta pueda verificar el webhook y enviar eventos sin autenticación.
         if (string.IsNullOrWhiteSpace(_apiKey) ||
             !context.Request.Path.StartsWithSegments("/api") ||
-            context.Request.Path.StartsWithSegments("/api/whatsapp"))
+            context.Request.Path.StartsWithSegments("/api/whatsapp/webhook"))
         {
             await _next(context);
             return;

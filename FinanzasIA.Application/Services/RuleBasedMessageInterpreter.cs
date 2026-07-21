@@ -32,6 +32,11 @@ public partial class RuleBasedMessageInterpreter : IMessageInterpreter
 
     private static readonly IntentDefinition[] Definiciones =
     [
+        // Consultas primero: "cuanto gaste hoy" no debe interpretarse como registro de gasto.
+        new(MessageIntent.GastosHoy, new Regex(@"(cuanto\s+gaste\s+hoy|gastos?\s+de\s+hoy)", RegexOptions.Compiled)),
+        new(MessageIntent.GastosMes, new Regex(@"(cuanto\s+gaste\s+(?:este\s+)?mes|gastos?\s+del?\s+mes|gastos?\s+de\s+este\s+mes)", RegexOptions.Compiled)),
+        new(MessageIntent.IngresosMes, new Regex(@"(cuanto\s+(?:cobre|ingrese|gane)\s+(?:este\s+)?mes|ingresos?\s+del?\s+mes|ingresos?\s+de\s+este\s+mes)", RegexOptions.Compiled)),
+        new(MessageIntent.UltimosMovimientos, new Regex(@"\b(ultimos?\s+(?:gastos?|movimientos?)|movimientos?\s+recientes)\b", RegexOptions.Compiled)),
         new(MessageIntent.Transferencia, new Regex(@"\b(transferi|transfiero|transferencia|envie|mande)\b", RegexOptions.Compiled), TipoMovimiento.Egreso),
         new(MessageIntent.RegistrarIngreso, new Regex(@"\b(cobre|ingreso|ingresaron|recibi|me pagaron|me depositaron|gane)\b", RegexOptions.Compiled), TipoMovimiento.Ingreso),
         new(MessageIntent.RegistrarGasto, new Regex(@"\b(gaste|compre|pague|abone|gasto de|compra de)\b", RegexOptions.Compiled), TipoMovimiento.Egreso),

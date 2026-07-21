@@ -30,4 +30,10 @@ public interface IUsuarioWhatsappService
     /// la fecha de último uso. Devuelve null si el número no está vinculado.
     /// </summary>
     Task<string?> BuscarUsuarioPorNumeroAsync(string numeroTelefono, CanalMensajeria canal = CanalMensajeria.WhatsApp, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Indica si el número está vinculado a un usuario pero todavía no fue
+    /// verificado (o está inactivo). Permite responder con un mensaje específico.
+    /// </summary>
+    Task<bool> NumeroPendienteDeVerificacionAsync(string numeroTelefono, CanalMensajeria canal = CanalMensajeria.WhatsApp, CancellationToken cancellationToken = default);
 }

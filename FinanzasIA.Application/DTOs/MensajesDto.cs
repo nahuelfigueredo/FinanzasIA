@@ -18,7 +18,11 @@ public enum MessageIntent
     ConsultaCategoria = 6,
     ConsultaPresupuesto = 7,
     Ayuda = 8,
-    Saludo = 9
+    Saludo = 9,
+    GastosHoy = 10,
+    GastosMes = 11,
+    IngresosMes = 12,
+    UltimosMovimientos = 13
 }
 
 /// <summary>Canal de origen de un mensaje entrante.</summary>
