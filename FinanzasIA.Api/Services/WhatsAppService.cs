@@ -116,9 +116,8 @@ public class WhatsAppService : IWhatsAppService
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new Exception(
-                $"WhatsApp API devolviÃ³ {(int)response.StatusCode} ({response.StatusCode}). " +
-                $"Respuesta: {responseBody}");
+            // TODO: Temporal para diagnóstico: la excepción contiene solo el JSON puro de Meta.
+            throw new Exception(responseBody);
         }
     }
 
