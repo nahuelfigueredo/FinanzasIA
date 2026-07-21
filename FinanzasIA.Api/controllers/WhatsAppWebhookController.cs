@@ -1,12 +1,14 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
-using FinanzasIA.Api.DTOs;
+﻿using FinanzasIA.Api.DTOs;
 using FinanzasIA.Api.Options;
 using FinanzasIA.Api.Services;
 using FinanzasIA.Application.DTOs;
 using FinanzasIA.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
 
 namespace FinanzasIA.Api.Controllers;
 
@@ -70,6 +72,20 @@ public class WhatsAppWebhookController : ControllerBase
             accessTokenLongitud = _options.AccessToken?.Length ?? 0,
             phoneNumberId = _options.PhoneNumberId
         });
+    }
+
+    // TODO: Endpoint temporal de diagnóstico de autenticación contra Meta. Eliminar al terminar las pruebas.
+    [HttpGet("test-meta")]
+    public async Task<IActionResult> TestMeta(CancellationToken cancellationToken)
+    {
+        var (statusCode, responseBody) = await _whatsAppService.TestMetaAuthAsync(cancellationToken);
+
+        return new ContentResult
+        {
+            StatusCode = StatusCodes.Status200OK,
+            ContentType = "application/json",
+            Content = $"{{\"statusCode\":{statusCode},\"responseBody\":{JsonSerializer.Serialize(responseBody)}}}"
+        };
     }
 
     [HttpPost("webhook")]

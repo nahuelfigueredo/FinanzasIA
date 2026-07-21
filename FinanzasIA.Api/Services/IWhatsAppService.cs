@@ -6,4 +6,7 @@ public interface IWhatsAppService
 
     /// <summary>Descarga el contenido binario de un media (imagen) recibido por WhatsApp.</summary>
     Task<(byte[] Contenido, string MimeType)> DownloadMediaAsync(string mediaId, CancellationToken cancellationToken = default);
+
+    /// <summary>Diagnóstico temporal: verifica la autenticación contra Meta Graph API.</summary>
+    Task<(int StatusCode, string ResponseBody)> TestMetaAuthAsync(CancellationToken cancellationToken = default);
 }

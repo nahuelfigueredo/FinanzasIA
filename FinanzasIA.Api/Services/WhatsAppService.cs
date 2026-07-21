@@ -10,11 +10,50 @@ public class WhatsAppService : IWhatsAppService
 {
     private readonly HttpClient _httpClient;
     private readonly WhatsAppOptions _options;
+    private readonly ILogger<WhatsAppService> _logger;
 
-    public WhatsAppService(HttpClient httpClient, IOptions<WhatsAppOptions> options)
+    public WhatsAppService(HttpClient httpClient, IOptions<WhatsAppOptions> options, ILogger<WhatsAppService> logger)
     {
         _httpClient = httpClient;
         _options = options.Value;
+        _logger = logger;
+
+        // Defensivo: tokens pegados en variables de entorno suelen traer espacios o saltos
+        // de línea al final, lo que provoca 401 (code 190, OAuthException) en Meta.
+        _options.AccessToken = _options.AccessToken?.Trim() ?? string.Empty;
+        _options.VerifyToken = _options.VerifyToken?.Trim() ?? string.Empty;
+        _options.PhoneNumberId = _options.PhoneNumberId?.Trim() ?? string.Empty;
+    }
+
+    // TODO: Método temporal de diagnóstico. Eliminar al terminar las pruebas.
+    public async Task<(int StatusCode, string ResponseBody)> TestMetaAuthAsync(CancellationToken cancellationToken = default)
+    {
+        var url = $"https://graph.facebook.com/v25.0/{_options.PhoneNumberId}";
+
+        var tokenPrefix = _options.AccessToken.Length >= 10
+            ? _options.AccessToken[..10]
+            : _options.AccessToken;
+
+        _logger.LogInformation(
+            "TestMetaAuth -> PhoneNumberId: {PhoneNumberId}, AccessToken longitud: {TokenLength}, AccessToken inicio: {TokenPrefix}..., URL: {Url}",
+            _options.PhoneNumberId,
+            _options.AccessToken.Length,
+            tokenPrefix,
+            url);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "TestMetaAuth <- StatusCode: {StatusCode}, Body: {Body}",
+            (int)response.StatusCode,
+            responseBody);
+
+        return ((int)response.StatusCode, responseBody);
     }
 
     public async Task SendTextMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
