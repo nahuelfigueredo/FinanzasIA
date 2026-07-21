@@ -14,11 +14,16 @@ public class AsistenteService : IAsistenteService
 {
     private readonly IMovimientoRepository _movimientoRepository;
     private readonly IAsistenteIAProvider _iaProvider;
+    private readonly IMessageProcessor _messageProcessor;
 
-    public AsistenteService(IMovimientoRepository movimientoRepository, IAsistenteIAProvider iaProvider)
+    public AsistenteService(
+        IMovimientoRepository movimientoRepository,
+        IAsistenteIAProvider iaProvider,
+        IMessageProcessor messageProcessor)
     {
         _movimientoRepository = movimientoRepository;
         _iaProvider = iaProvider;
+        _messageProcessor = messageProcessor;
     }
 
     public async Task<AsistenteRespuestaDto> PreguntarAsync(string pregunta, string? usuarioId = null, CancellationToken cancellationToken = default)
@@ -31,12 +36,31 @@ public class AsistenteService : IAsistenteService
             };
         }
 
+        // Primero se intenta interpretar el mensaje con el motor de mensajes.
+        // Si corresponde a registrar un movimiento, se crea automáticamente y
+        // no se envía la consulta a la IA.
+        var resultado = await _messageProcessor.ProcesarAsync(new MensajeEntranteDto
+        {
+            Texto = pregunta.Trim(),
+            Origen = MessageOrigen.Asistente,
+            UsuarioId = usuarioId
+        }, cancellationToken);
+
+        if (EsRegistroMovimiento(resultado.Intent))
+        {
+            return new AsistenteRespuestaDto { Respuesta = resultado.Respuesta };
+        }
+
         var movimientos = await _movimientoRepository.GetAllAsync(usuarioId, cancellationToken);
         var contexto = ConstruirContexto(movimientos);
         var respuesta = await _iaProvider.GenerarRespuestaAsync(pregunta.Trim(), contexto, cancellationToken);
 
         return new AsistenteRespuestaDto { Respuesta = respuesta };
     }
+
+    /// <summary>Determina si la intención corresponde a registrar un movimiento.</summary>
+    private static bool EsRegistroMovimiento(MessageIntent intent) =>
+        intent is MessageIntent.RegistrarGasto or MessageIntent.RegistrarIngreso or MessageIntent.Transferencia;
 
     private static ContextoFinancieroDto ConstruirContexto(IReadOnlyCollection<Core.Entities.Movimiento> movimientos)
     {

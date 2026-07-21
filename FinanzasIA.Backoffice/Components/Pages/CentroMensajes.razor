@@ -1,0 +1,136 @@
+@page "/centro-mensajes"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+
+<PageTitle>Centro de Mensajes</PageTitle>
+
+<h1 class="mb-1">Centro de Mensajes</h1>
+<p class="text-muted mb-4">Historial de mensajes procesados por el motor de mensajes (WhatsApp, Asistente y otras integraciones).</p>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" @bind="_filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="ok">Exitosos</option>
+                    <option value="error">Con error</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Origen</label>
+                <select class="form-select" @bind="_filtroOrigen">
+                    <option value="">Todos</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Asistente">Asistente</option>
+                    <option value="Api">API</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Desde</label>
+                <InputDate class="form-control" @bind-Value="_filtroDesde" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Hasta</label>
+                <InputDate class="form-control" @bind-Value="_filtroHasta" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_cargando)
+{
+    <p class="text-muted">Cargando mensajes...</p>
+}
+else if (!MensajesFiltrados.Any())
+{
+    <p class="text-muted">No hay mensajes para los filtros seleccionados.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Origen</th>
+                    <th>Mensaje</th>
+                    <th>Intent</th>
+                    <th>Estado</th>
+                    <th>Movimiento</th>
+                    <th>Respuesta</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in MensajesFiltrados)
+                {
+                    <tr>
+                        <td class="text-nowrap">@m.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <span class="badge @(m.Origen == MessageOrigen.WhatsApp ? "bg-success" : "bg-primary")">
+                                @m.Origen
+                            </span>
+                        </td>
+                        <td>@m.Texto</td>
+                        <td>@m.Intent</td>
+                        <td>
+                            @if (m.Exito)
+                            {
+                                <span class="badge bg-success">Exitoso</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Error</span>
+                            }
+                        </td>
+                        <td>
+                            @if (m.MovimientoId is not null)
+                            {
+                                <span class="badge bg-info text-dark">#@m.MovimientoId</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-muted small">@m.Respuesta</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MensajeLogDto> _mensajes = [];
+    private bool _cargando = true;
+
+    private string _filtroEstado = string.Empty;
+    private string _filtroOrigen = string.Empty;
+    private DateTime? _filtroDesde;
+    private DateTime? _filtroHasta;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _mensajes = await ApiClient.GetMensajesProcesadosAsync();
+        }
+        catch
+        {
+            _mensajes = [];
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private IEnumerable<MensajeLogDto> MensajesFiltrados => _mensajes
+        .Where(m => string.IsNullOrEmpty(_filtroEstado) || (_filtroEstado == "ok" ? m.Exito : !m.Exito))
+        .Where(m => string.IsNullOrEmpty(_filtroOrigen) || m.Origen.ToString() == _filtroOrigen)
+        .Where(m => _filtroDesde is null || m.Fecha.Date >= _filtroDesde.Value.Date)
+        .Where(m => _filtroHasta is null || m.Fecha.Date <= _filtroHasta.Value.Date);
+}

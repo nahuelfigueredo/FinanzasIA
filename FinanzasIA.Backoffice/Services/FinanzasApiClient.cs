@@ -119,4 +119,10 @@ public class FinanzasApiClient
         var sugerencias = await _httpClient.GetFromJsonAsync<List<SugerenciaDto>>(url, cancellationToken);
         return sugerencias ?? [];
     }
+
+    public async Task<IReadOnlyCollection<MensajeLogDto>> GetMensajesProcesadosAsync(int cantidad = 100, CancellationToken cancellationToken = default)
+    {
+        var mensajes = await _httpClient.GetFromJsonAsync<List<MensajeLogDto>>($"api/mensajes?cantidad={cantidad}", cancellationToken);
+        return mensajes ?? [];
+    }
 }

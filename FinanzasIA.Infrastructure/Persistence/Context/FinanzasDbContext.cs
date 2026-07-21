@@ -17,6 +17,8 @@ public class FinanzasDbContext : DbContext
 
     public DbSet<Cuenta> Cuentas => Set<Cuenta>();
 
+    public DbSet<MensajeProcesado> MensajesProcesados => Set<MensajeProcesado>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -83,6 +85,22 @@ public class FinanzasDbContext : DbContext
                   .HasMaxLength(450);
 
             entity.HasIndex(x => x.UsuarioId);
+        });
+
+        modelBuilder.Entity<MensajeProcesado>(entity =>
+        {
+            entity.Property(x => x.Texto)
+                  .HasMaxLength(1000)
+                  .IsRequired();
+
+            entity.Property(x => x.Respuesta)
+                  .HasMaxLength(2000);
+
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450);
+
+            entity.HasIndex(x => x.UsuarioId);
+            entity.HasIndex(x => x.FechaCreacion);
         });
     }
 }
