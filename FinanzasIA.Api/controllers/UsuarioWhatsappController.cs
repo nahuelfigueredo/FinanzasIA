@@ -27,10 +27,10 @@ public class UsuarioWhatsappController : ControllerBase
 
     [HttpPost("vincular")]
     public async Task<ActionResult<VinculacionResultDto>> Vincular(
-        [FromBody] VincularNumeroDto dto,
-        CancellationToken cancellationToken)
+    [FromBody] VincularNumeroDto dto,
+    CancellationToken cancellationToken)
     {
-        return Ok(await _service.VincularAsync(UsuarioId: UsuarioId, dto: dto, cancellationToken: cancellationToken));
+        return Ok(await _service.VincularAsync(dto, UsuarioId, cancellationToken));
     }
 
     [HttpPost("verificar")]
