@@ -19,6 +19,10 @@ public class FinanzasDbContext : DbContext
 
     public DbSet<MensajeProcesado> MensajesProcesados => Set<MensajeProcesado>();
 
+    public DbSet<UsuarioWhatsapp> UsuariosWhatsapp => Set<UsuarioWhatsapp>();
+
+    public DbSet<TicketPendiente> TicketsPendientes => Set<TicketPendiente>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -101,6 +105,50 @@ public class FinanzasDbContext : DbContext
 
             entity.HasIndex(x => x.UsuarioId);
             entity.HasIndex(x => x.FechaCreacion);
+        });
+
+        modelBuilder.Entity<UsuarioWhatsapp>(entity =>
+        {
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450)
+                  .IsRequired();
+
+            entity.Property(x => x.NumeroTelefono)
+                  .HasMaxLength(30)
+                  .IsRequired();
+
+            entity.Property(x => x.Nombre)
+                  .HasMaxLength(100);
+
+            entity.Property(x => x.CodigoVerificacion)
+                  .HasMaxLength(10);
+
+            entity.HasIndex(x => new { x.NumeroTelefono, x.Canal }).IsUnique();
+            entity.HasIndex(x => x.UsuarioId);
+        });
+
+        modelBuilder.Entity<TicketPendiente>(entity =>
+        {
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450)
+                  .IsRequired();
+
+            entity.Property(x => x.TextoOcr)
+                  .HasMaxLength(4000);
+
+            entity.Property(x => x.Monto)
+                  .HasPrecision(18, 2);
+
+            entity.Property(x => x.Comercio)
+                  .HasMaxLength(200);
+
+            entity.Property(x => x.CategoriaSugerida)
+                  .HasMaxLength(100);
+
+            entity.Property(x => x.DatoSolicitado)
+                  .HasMaxLength(20);
+
+            entity.HasIndex(x => new { x.UsuarioId, x.Activo });
         });
     }
 }

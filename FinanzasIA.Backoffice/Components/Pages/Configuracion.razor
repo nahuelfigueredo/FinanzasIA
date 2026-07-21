@@ -1,6 +1,7 @@
 @page "/configuracion"
 @rendermode InteractiveServer
 @inject IJSRuntime JSRuntime
+@inject FinanzasApiClient ApiClient
 
 <PageTitle>Configuración</PageTitle>
 
@@ -72,11 +73,116 @@ else
             </div>
         </div>
     </div>
+
+    <div class="dashboard-panel mt-4">
+        <h4 class="mb-1"><span class="section-icon" aria-hidden="true">💬</span> WhatsApp</h4>
+        <p class="text-muted small mb-3">Vinculá tu número para registrar movimientos enviando mensajes por WhatsApp.</p>
+
+        @if (!string.IsNullOrEmpty(_whatsappMensaje))
+        {
+            <div class="alert @(_whatsappExito ? "alert-success" : "alert-warning") py-2">@_whatsappMensaje</div>
+        }
+
+        <div class="row g-2 align-items-end mb-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label">Número de teléfono</label>
+                <input class="form-control" placeholder="Ej: 5492211234567" @bind="_nuevoNumero" />
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label">Nombre (opcional)</label>
+                <input class="form-control" placeholder="Ej: Mi celular" @bind="_nuevoNombre" />
+            </div>
+            <div class="col-12 col-md-4">
+                <button class="btn btn-primary" type="button" disabled="@_procesandoWhatsapp" @onclick="VincularNumeroAsync">
+                    🔗 Vincular
+                </button>
+            </div>
+        </div>
+
+        @if (_cargandoNumeros)
+        {
+            <p class="text-muted small mb-0">Cargando números vinculados...</p>
+        }
+        else if (_numeros.Count == 0)
+        {
+            <p class="text-muted small mb-0">Todavía no tenés números vinculados.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Número</th>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Última conexión</th>
+                            <th>Fecha de alta</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var n in _numeros)
+                        {
+                            <tr>
+                                <td class="text-nowrap">@n.NumeroTelefono</td>
+                                <td>@(n.Nombre ?? "—")</td>
+                                <td>
+                                    @if (n.Verificado)
+                                    {
+                                        <span class="badge bg-success">Verificado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Pendiente</span>
+                                    }
+                                </td>
+                                <td class="text-nowrap">@(n.FechaUltimoUso?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                                <td class="text-nowrap">@n.FechaAlta.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td class="text-nowrap text-end">
+                                    @if (!n.Verificado)
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary me-1" type="button" disabled="@_procesandoWhatsapp"
+                                                @onclick="() => ReenviarCodigoAsync(n.Id)">📨 Reenviar código</button>
+                                    }
+                                    <button class="btn btn-sm btn-outline-danger" type="button" disabled="@_procesandoWhatsapp"
+                                            @onclick="() => EliminarNumeroAsync(n.Id)">🗑️ Eliminar</button>
+                                </td>
+                            </tr>
+                            @if (!n.Verificado)
+                            {
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <input class="form-control form-control-sm" style="max-width: 180px;"
+                                                   placeholder="Código de 6 dígitos" maxlength="6"
+                                                   @bind="_codigosIngresados[n.Id]" />
+                                            <button class="btn btn-sm btn-success" type="button" disabled="@_procesandoWhatsapp"
+                                                    @onclick="() => VerificarNumeroAsync(n.Id)">✅ Verificar</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
 }
 
 @code {
     private PreferenceModel _preferences = new();
     private bool _isLoading = true;
+
+    private IReadOnlyCollection<UsuarioWhatsappDto> _numeros = [];
+    private readonly Dictionary<int, string> _codigosIngresados = [];
+    private bool _cargandoNumeros = true;
+    private bool _procesandoWhatsapp;
+    private string _nuevoNumero = string.Empty;
+    private string _nuevoNombre = string.Empty;
+    private string _whatsappMensaje = string.Empty;
+    private bool _whatsappExito;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -88,6 +194,136 @@ else
         _preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
         _isLoading = false;
         StateHasChanged();
+
+        await CargarNumerosAsync();
+        StateHasChanged();
+    }
+
+    private async Task CargarNumerosAsync()
+    {
+        try
+        {
+            _numeros = await ApiClient.GetNumerosWhatsappAsync();
+            foreach (var n in _numeros)
+            {
+                _codigosIngresados.TryAdd(n.Id, string.Empty);
+            }
+        }
+        catch
+        {
+            _numeros = [];
+        }
+        finally
+        {
+            _cargandoNumeros = false;
+        }
+    }
+
+    private async Task VincularNumeroAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_nuevoNumero))
+        {
+            MostrarMensajeWhatsapp("Ingresá un número de teléfono.", false);
+            return;
+        }
+
+        _procesandoWhatsapp = true;
+        try
+        {
+            var resultado = await ApiClient.VincularNumeroWhatsappAsync(new VincularNumeroDto
+            {
+                NumeroTelefono = _nuevoNumero.Trim(),
+                Nombre = string.IsNullOrWhiteSpace(_nuevoNombre) ? null : _nuevoNombre.Trim()
+            });
+
+            MostrarMensajeWhatsapp(resultado.Mensaje, resultado.Exito);
+            if (resultado.Exito)
+            {
+                _nuevoNumero = string.Empty;
+                _nuevoNombre = string.Empty;
+                await CargarNumerosAsync();
+            }
+        }
+        catch
+        {
+            MostrarMensajeWhatsapp("No se pudo vincular el número. Intentá de nuevo.", false);
+        }
+        finally
+        {
+            _procesandoWhatsapp = false;
+        }
+    }
+
+    private async Task VerificarNumeroAsync(int id)
+    {
+        var codigo = _codigosIngresados.GetValueOrDefault(id, string.Empty);
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            MostrarMensajeWhatsapp("Ingresá el código de verificación.", false);
+            return;
+        }
+
+        _procesandoWhatsapp = true;
+        try
+        {
+            var resultado = await ApiClient.VerificarNumeroWhatsappAsync(new VerificarNumeroDto { Id = id, Codigo = codigo.Trim() });
+            MostrarMensajeWhatsapp(resultado.Mensaje, resultado.Exito);
+            if (resultado.Exito)
+            {
+                await CargarNumerosAsync();
+            }
+        }
+        catch
+        {
+            MostrarMensajeWhatsapp("No se pudo verificar el código. Intentá de nuevo.", false);
+        }
+        finally
+        {
+            _procesandoWhatsapp = false;
+        }
+    }
+
+    private async Task ReenviarCodigoAsync(int id)
+    {
+        _procesandoWhatsapp = true;
+        try
+        {
+            var resultado = await ApiClient.ReenviarCodigoWhatsappAsync(id);
+            MostrarMensajeWhatsapp(resultado.Mensaje, resultado.Exito);
+        }
+        catch
+        {
+            MostrarMensajeWhatsapp("No se pudo reenviar el código.", false);
+        }
+        finally
+        {
+            _procesandoWhatsapp = false;
+        }
+    }
+
+    private async Task EliminarNumeroAsync(int id)
+    {
+        _procesandoWhatsapp = true;
+        try
+        {
+            await ApiClient.EliminarNumeroWhatsappAsync(id);
+            MostrarMensajeWhatsapp("Número eliminado.", true);
+            await CargarNumerosAsync();
+        }
+        catch
+        {
+            MostrarMensajeWhatsapp("No se pudo eliminar el número.", false);
+        }
+        finally
+        {
+            _procesandoWhatsapp = false;
+        }
+    }
+
+    private void MostrarMensajeWhatsapp(string mensaje, bool exito)
+    {
+        _whatsappMensaje = mensaje;
+        _whatsappExito = exito;
     }
 
     private async Task SaveAsync()

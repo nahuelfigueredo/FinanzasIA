@@ -125,4 +125,37 @@ public class FinanzasApiClient
         var mensajes = await _httpClient.GetFromJsonAsync<List<MensajeLogDto>>($"api/mensajes?cantidad={cantidad}", cancellationToken);
         return mensajes ?? [];
     }
+
+    public async Task<IReadOnlyCollection<UsuarioWhatsappDto>> GetNumerosWhatsappAsync(CancellationToken cancellationToken = default)
+    {
+        var numeros = await _httpClient.GetFromJsonAsync<List<UsuarioWhatsappDto>>("api/usuario-whatsapp", cancellationToken);
+        return numeros ?? [];
+    }
+
+    public async Task<VinculacionResultDto> VincularNumeroWhatsappAsync(VincularNumeroDto dto, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/usuario-whatsapp/vincular", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
+    }
+
+    public async Task<VinculacionResultDto> VerificarNumeroWhatsappAsync(VerificarNumeroDto dto, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync("api/usuario-whatsapp/verificar", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
+    }
+
+    public async Task<VinculacionResultDto> ReenviarCodigoWhatsappAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsync($"api/usuario-whatsapp/{id}/reenviar-codigo", null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
+    }
+
+    public async Task EliminarNumeroWhatsappAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.DeleteAsync($"api/usuario-whatsapp/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 }

@@ -21,20 +21,23 @@ public class WhatsAppWebhookController : ControllerBase
     private readonly WhatsAppOptions _options;
     private readonly IWhatsAppService _whatsAppService;
     private readonly IMessageProcessor _messageProcessor;
-    private readonly IUsuarioWhatsAppResolver _usuarioResolver;
+    private readonly IUsuarioWhatsappService _usuarioWhatsappService;
+    private readonly ITicketProcessor _ticketProcessor;
     private readonly ILogger<WhatsAppWebhookController> _logger;
 
     public WhatsAppWebhookController(
         IOptions<WhatsAppOptions> options,
         IWhatsAppService whatsAppService,
         IMessageProcessor messageProcessor,
-        IUsuarioWhatsAppResolver usuarioResolver,
+        IUsuarioWhatsappService usuarioWhatsappService,
+        ITicketProcessor ticketProcessor,
         ILogger<WhatsAppWebhookController> logger)
     {
         _options = options.Value;
         _whatsAppService = whatsAppService;
         _messageProcessor = messageProcessor;
-        _usuarioResolver = usuarioResolver;
+        _usuarioWhatsappService = usuarioWhatsappService;
+        _ticketProcessor = ticketProcessor;
         _logger = logger;
     }
 
@@ -91,20 +94,43 @@ public class WhatsAppWebhookController : ControllerBase
 
                     var from = fromNode.GetString();
                     var incomingText = ExtractIncomingText(message);
-                    if (string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(incomingText))
+                    var imageId = ExtractImageMediaId(message);
+                    if (string.IsNullOrWhiteSpace(from) || (string.IsNullOrWhiteSpace(incomingText) && string.IsNullOrWhiteSpace(imageId)))
                     {
                         continue;
                     }
 
-                    var usuarioId = await _usuarioResolver.ResolverUsuarioIdAsync(from, cancellationToken);
-                    var resultado = await _messageProcessor.ProcesarAsync(new MensajeEntranteDto
-                    {
-                        Texto = incomingText,
-                        Origen = MessageOrigen.WhatsApp,
-                        UsuarioId = usuarioId
-                    }, cancellationToken);
+                    var usuarioId = await _usuarioWhatsappService.BuscarUsuarioPorNumeroAsync(from, cancellationToken: cancellationToken);
 
-                    var response = resultado.Respuesta;
+                    string response;
+                    if (usuarioId is null)
+                    {
+                        _logger.LogInformation("Mensaje de WhatsApp recibido de número no vinculado: {Phone}.", from);
+                        response = "Tu número todavía no está vinculado a una cuenta de FinanzasIA.\n\nIngresá al sistema y vinculá tu número desde Configuración.";
+                    }
+                    else if (!string.IsNullOrWhiteSpace(imageId))
+                    {
+                        // Imagen recibida: procesarla como ticket/comprobante mediante OCR.
+                        response = await ProcesarImagenTicketAsync(imageId, usuarioId, cancellationToken);
+                    }
+                    else if (await _ticketProcessor.TienePendienteAsync(usuarioId, cancellationToken))
+                    {
+                        // Hay un ticket esperando un dato: la respuesta del usuario lo completa.
+                        var ticketResultado = await _ticketProcessor.CompletarDatoAsync(usuarioId, incomingText!, cancellationToken);
+                        response = ticketResultado.Respuesta;
+                    }
+                    else
+                    {
+                        var resultado = await _messageProcessor.ProcesarAsync(new MensajeEntranteDto
+                        {
+                            Texto = incomingText,
+                            Origen = MessageOrigen.WhatsApp,
+                            UsuarioId = usuarioId
+                        }, cancellationToken);
+
+                        response = resultado.Respuesta;
+                    }
+
                     if (string.IsNullOrWhiteSpace(response))
                     {
                         continue;
@@ -131,6 +157,44 @@ public class WhatsAppWebhookController : ControllerBase
     {
         await _whatsAppService.SendTextMessageAsync(dto.To, dto.Message, cancellationToken);
         return Ok(new { message = "Mensaje enviado a WhatsApp." });
+    }
+
+    /// <summary>
+    /// Descarga la imagen de WhatsApp y la procesa como ticket con OCR.
+    /// Nunca lanza: ante cualquier error devuelve un mensaje amigable.
+    /// </summary>
+    private async Task<string> ProcesarImagenTicketAsync(string imageId, string usuarioId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (contenido, mimeType) = await _whatsAppService.DownloadMediaAsync(imageId, cancellationToken);
+            var resultado = await _ticketProcessor.ProcesarImagenAsync(new TicketImagenDto
+            {
+                Contenido = contenido,
+                MimeType = mimeType,
+                UsuarioId = usuarioId
+            }, cancellationToken);
+
+            return resultado.Respuesta;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al procesar imagen de ticket {MediaId} del usuario {UsuarioId}.", imageId, usuarioId);
+            return "No pude procesar la imagen del ticket. 🙏\n\nIntentá de nuevo en unos segundos.";
+        }
+    }
+
+    private static string? ExtractImageMediaId(JsonElement message)
+    {
+        if (message.TryGetProperty("type", out var typeNode) &&
+            typeNode.GetString() == "image" &&
+            message.TryGetProperty("image", out var imageNode) &&
+            imageNode.TryGetProperty("id", out var idNode))
+        {
+            return idNode.GetString();
+        }
+
+        return null;
     }
 
     private static string? ExtractIncomingText(JsonElement message)

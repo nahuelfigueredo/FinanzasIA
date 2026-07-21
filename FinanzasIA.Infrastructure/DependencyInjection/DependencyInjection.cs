@@ -26,6 +26,8 @@ public static class DependencyInjection
         services.AddScoped<IMovimientoRepository, MovimientoRepository>();
         services.AddScoped<ICuentaRepository, CuentaRepository>();
         services.AddScoped<IMensajeProcesadoRepository, MensajeProcesadoRepository>();
+        services.AddScoped<IUsuarioWhatsappRepository, UsuarioWhatsappRepository>();
+        services.AddScoped<ITicketPendienteRepository, TicketPendienteRepository>();
 
         return services;
     }

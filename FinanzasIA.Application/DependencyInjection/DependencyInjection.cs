@@ -23,6 +23,13 @@ public static class DependencyInjection
         services.AddScoped<IMessageActionExecutor, MessageActionExecutor>();
         services.AddScoped<IMessageProcessor, MessageProcessor>();
 
+        // Vinculación de números de mensajería (WhatsApp hoy, otros canales a futuro).
+        services.AddScoped<IUsuarioWhatsappService, UsuarioWhatsappService>();
+
+        // Carga automática de gastos desde tickets (OCR).
+        // El ITicketOcrProvider concreto se registra en la capa de host (Api).
+        services.AddScoped<ITicketProcessor, TicketProcessor>();
+
         return services;
     }
 }

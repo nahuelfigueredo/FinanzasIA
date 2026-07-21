@@ -50,4 +50,41 @@ public class WhatsAppService : IWhatsAppService
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task<(byte[] Contenido, string MimeType)> DownloadMediaAsync(string mediaId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.AccessToken))
+        {
+            throw new InvalidOperationException("WhatsApp AccessToken is required to download media.");
+        }
+
+        if (string.IsNullOrWhiteSpace(mediaId))
+        {
+            throw new ArgumentException("Media id is required.", nameof(mediaId));
+        }
+
+        // 1) Obtener la URL temporal del media.
+        using var metadataRequest = new HttpRequestMessage(HttpMethod.Get, $"https://graph.facebook.com/v23.0/{mediaId}");
+        metadataRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+
+        using var metadataResponse = await _httpClient.SendAsync(metadataRequest, cancellationToken);
+        metadataResponse.EnsureSuccessStatusCode();
+
+        using var metadata = JsonDocument.Parse(await metadataResponse.Content.ReadAsStringAsync(cancellationToken));
+        var url = metadata.RootElement.GetProperty("url").GetString()
+            ?? throw new InvalidOperationException("WhatsApp media metadata did not include a URL.");
+        var mimeType = metadata.RootElement.TryGetProperty("mime_type", out var mimeNode)
+            ? mimeNode.GetString() ?? "image/jpeg"
+            : "image/jpeg";
+
+        // 2) Descargar el binario (requiere el mismo Bearer token).
+        using var mediaRequest = new HttpRequestMessage(HttpMethod.Get, url);
+        mediaRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+
+        using var mediaResponse = await _httpClient.SendAsync(mediaRequest, cancellationToken);
+        mediaResponse.EnsureSuccessStatusCode();
+
+        var contenido = await mediaResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+        return (contenido, mimeType);
+    }
 }
