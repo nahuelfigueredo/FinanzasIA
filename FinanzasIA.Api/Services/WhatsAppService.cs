@@ -48,8 +48,14 @@ public class WhatsAppService : IWhatsAppService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-    }
+
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new Exception(
+                $"WhatsApp API devolvió {(int)response.StatusCode} ({response.StatusCode}). Respuesta: {responseBody}");
+        }
 
     public async Task<(byte[] Contenido, string MimeType)> DownloadMediaAsync(string mediaId, CancellationToken cancellationToken = default)
     {
