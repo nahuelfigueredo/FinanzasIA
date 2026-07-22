@@ -1,0 +1,105 @@
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+@if (_showPrompt)
+{
+    <div class="install-prompt-card">
+        <img class="install-prompt-icon" src="app-icon.svg" alt="" aria-hidden="true" />
+        <div class="install-prompt-text">
+            <strong>Instalá FinanzasIA</strong>
+            <p>Instalá la aplicación para acceder más rápido, recibir futuras mejoras y tener una mejor experiencia.</p>
+        </div>
+        <button type="button" class="install-prompt-btn" disabled="@_installing" @onclick="InstallAsync">
+            @(_installing ? "Instalando..." : "Instalar aplicación")
+        </button>
+    </div>
+}
+
+@code {
+    private bool _showPrompt;
+    private bool _installing;
+    private DotNetObjectReference<InstallAppPrompt>? _reference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            var installed = await JSRuntime.InvokeAsync<bool>("finanzasPwa.isInstalled");
+            if (installed)
+            {
+                return;
+            }
+
+            _reference = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("finanzasPwa.registerInstallPrompt", _reference);
+
+            if (await JSRuntime.InvokeAsync<bool>("finanzasPwa.canInstall"))
+            {
+                _showPrompt = true;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // JS interop no disponible (prerender): se ignora.
+        }
+    }
+
+    [JSInvokable]
+    public void InstallAvailable()
+    {
+        _showPrompt = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void InstallCompleted()
+    {
+        _showPrompt = false;
+        _installing = false;
+        StateHasChanged();
+    }
+
+    private async Task InstallAsync()
+    {
+        _installing = true;
+        try
+        {
+            var accepted = await JSRuntime.InvokeAsync<bool>("finanzasPwa.install");
+            if (accepted)
+            {
+                _showPrompt = false;
+            }
+        }
+        catch
+        {
+            // Instalación cancelada o no soportada.
+        }
+        finally
+        {
+            _installing = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_reference is not null)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("finanzasPwa.unregisterInstallPrompt");
+            }
+            catch
+            {
+                // Circuito cerrado: se ignora.
+            }
+            _reference.Dispose();
+        }
+    }
+}

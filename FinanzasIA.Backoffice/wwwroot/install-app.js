@@ -1,61 +1,73 @@
 window.finanzasPwa = (() => {
-    let installPrompt;
-    let dotNetReference;
+	const STORAGE_KEY = 'finanzas-pwa-installed';
+	let installPrompt;
+	let dotNetReference;
 
-    window.addEventListener('beforeinstallprompt', event => {
-        event.preventDefault();
-        installPrompt = event;
-        console.info('[FinanzasIA PWA] beforeinstallprompt recibido: la app es instalable.');
-        dotNetReference?.invokeMethodAsync('InstallAvailable');
-    });
+	function isStandalone() {
+		return window.matchMedia('(display-mode: standalone)').matches
+			|| window.navigator.standalone === true;
+	}
 
-    window.addEventListener('appinstalled', () => {
-        console.info('[FinanzasIA PWA] appinstalled: la app se instaló correctamente.');
-        installPrompt = undefined;
-    });
+	function markInstalled() {
+		try { localStorage.setItem(STORAGE_KEY, 'true'); } catch { /* ignore */ }
+	}
 
-    // Diagnóstico de instalabilidad en consola.
-    setTimeout(async () => {
-        if (installPrompt) {
-            return;
-        }
-        const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        console.warn('[FinanzasIA PWA] beforeinstallprompt NO se disparó después de 5s. Posibles causas:');
-        console.warn('- La app ya está instalada en este dispositivo (standalone=' + standalone + ').');
-        console.warn('- El prompt fue cancelado recientemente y el navegador lo bloquea temporalmente.');
-        console.warn('- El navegador no soporta instalación automática (Safari iOS, Firefox).');
-        if (navigator.serviceWorker) {
-            const reg = await navigator.serviceWorker.getRegistration();
-            console.warn('- Service worker: ' + (reg?.active ? 'activo' : 'NO activo'));
-        }
-    }, 5000);
+	function wasInstalled() {
+		try { return localStorage.getItem(STORAGE_KEY) === 'true'; } catch { return false; }
+	}
 
-    return {
-        registerInstallPrompt(reference) {
-            dotNetReference = reference;
+	// Si corre en modo standalone, recordarlo para el navegador también.
+	if (isStandalone()) {
+		markInstalled();
+	}
 
-            if (installPrompt) {
-                dotNetReference.invokeMethodAsync('InstallAvailable');
-            }
-        },
-        unregisterInstallPrompt() {
-            dotNetReference = undefined;
-        },
-        canInstall() {
-            return !!installPrompt;
-        },
-        isInstalled() {
-            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        },
-        async install() {
-            if (!installPrompt) {
-                return false;
-            }
+	window.addEventListener('beforeinstallprompt', event => {
+		event.preventDefault();
+		installPrompt = event;
+		console.info('[FinanzasIA PWA] beforeinstallprompt recibido: la app es instalable.');
+		// Si el navegador vuelve a ofrecer instalación, la app ya no está instalada.
+		try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+		dotNetReference?.invokeMethodAsync('InstallAvailable');
+	});
 
-            installPrompt.prompt();
-            const choice = await installPrompt.userChoice;
-            installPrompt = undefined;
-            return choice.outcome === 'accepted';
-        }
-    };
+	window.addEventListener('appinstalled', () => {
+		console.info('[FinanzasIA PWA] appinstalled: la app se instaló correctamente.');
+		installPrompt = undefined;
+		markInstalled();
+		dotNetReference?.invokeMethodAsync('InstallCompleted');
+	});
+
+	return {
+		registerInstallPrompt(reference) {
+			dotNetReference = reference;
+
+			if (installPrompt && !wasInstalled() && !isStandalone()) {
+				dotNetReference.invokeMethodAsync('InstallAvailable');
+			}
+		},
+		unregisterInstallPrompt() {
+			dotNetReference = undefined;
+		},
+		canInstall() {
+			return !!installPrompt && !wasInstalled() && !isStandalone();
+		},
+		isInstalled() {
+			return isStandalone() || wasInstalled();
+		},
+		async install() {
+			if (!installPrompt) {
+				return false;
+			}
+
+			installPrompt.prompt();
+			const choice = await installPrompt.userChoice;
+			installPrompt = undefined;
+
+			if (choice.outcome === 'accepted') {
+				markInstalled();
+				return true;
+			}
+			return false;
+		}
+	};
 })();

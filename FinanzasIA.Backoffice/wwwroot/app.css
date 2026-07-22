@@ -2062,3 +2062,89 @@ html[data-theme="dark"] .cat-page-btn {
     color: #cbd5e1;
 }
 
+/* ===== Tarjeta de instalación PWA ===== */
+.install-prompt-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 1rem 0 1.25rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(20, 184, 166, 0.08) 100%);
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    box-shadow: 0 10px 28px rgba(37, 99, 235, 0.12);
+    animation: fadeInUp 0.3s ease both;
+}
+
+.install-prompt-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.9rem;
+    object-fit: contain;
+    box-shadow: 0 8px 20px rgba(13, 21, 51, 0.2);
+    flex-shrink: 0;
+}
+
+.install-prompt-text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.install-prompt-text strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.15rem;
+}
+
+.install-prompt-text p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.install-prompt-btn {
+    border: none;
+    border-radius: 0.9rem;
+    padding: 0.6rem 1.3rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: white;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.32);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.install-prompt-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.42);
+}
+
+.install-prompt-btn:disabled {
+    opacity: 0.7;
+}
+
+@media (max-width: 640.98px) {
+    .install-prompt-card {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .install-prompt-icon {
+        margin: 0 auto;
+    }
+}
+
+html[data-theme="dark"] .install-prompt-card {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(20, 184, 166, 0.12) 100%);
+    border-color: rgba(96, 165, 250, 0.25);
+}
+
+html[data-theme="dark"] .install-prompt-text p {
+    color: #94a3b8;
+}
+
