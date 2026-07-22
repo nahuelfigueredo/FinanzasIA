@@ -9,10 +9,8 @@ public class UsuarioWhatsappDto
     public string NumeroTelefono { get; set; } = string.Empty;
     public string? Nombre { get; set; }
     public CanalMensajeria Canal { get; set; }
-    public bool Verificado { get; set; }
     public bool Activo { get; set; }
     public DateTime FechaAlta { get; set; }
-    public DateTime? FechaVerificacion { get; set; }
     public DateTime? FechaUltimoUso { get; set; }
 }
 
@@ -24,14 +22,7 @@ public class VincularNumeroDto
     public CanalMensajeria Canal { get; set; } = CanalMensajeria.WhatsApp;
 }
 
-/// <summary>Solicitud para verificar un número con el código recibido.</summary>
-public class VerificarNumeroDto
-{
-    public int Id { get; set; }
-    public string Codigo { get; set; } = string.Empty;
-}
-
-/// <summary>Resultado de una operación de vinculación/verificación.</summary>
+/// <summary>Resultado de una operación de vinculación.</summary>
 public class VinculacionResultDto
 {
     public bool Exito { get; set; }

@@ -181,22 +181,6 @@ public class FinanzasApiClient
         return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
     }
 
-    public async Task<VinculacionResultDto> VerificarNumeroWhatsappAsync(VerificarNumeroDto dto, CancellationToken cancellationToken = default)
-    {
-        await EnsureUserHeaderAsync();
-        var response = await _httpClient.PostAsJsonAsync("api/usuario-whatsapp/verificar", dto, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
-    }
-
-    public async Task<VinculacionResultDto> ReenviarCodigoWhatsappAsync(int id, CancellationToken cancellationToken = default)
-    {
-        await EnsureUserHeaderAsync();
-        var response = await _httpClient.PostAsync($"api/usuario-whatsapp/{id}/reenviar-codigo", null, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<VinculacionResultDto>(cancellationToken))!;
-    }
-
     public async Task EliminarNumeroWhatsappAsync(int id, CancellationToken cancellationToken = default)
     {
         await EnsureUserHeaderAsync();

@@ -160,16 +160,8 @@ public class WhatsAppWebhookController : ControllerBase
 
             if (usuarioId is null)
             {
-                if (await _usuarioWhatsappService.NumeroPendienteDeVerificacionAsync(from, cancellationToken: cancellationToken))
-                {
-                    _logger.LogInformation("Mensaje de WhatsApp de número vinculado pero no verificado: {Phone}.", from);
-                    response = "Debés verificar tu cuenta antes de utilizar FinanzasIA.";
-                }
-                else
-                {
-                    _logger.LogInformation("Mensaje de WhatsApp recibido de número no vinculado: {Phone}.", from);
-                    response = "Tu número todavía no está vinculado a una cuenta de FinanzasIA.\n\nIngresá al sistema y vinculá tu número desde Configuración.";
-                }
+                _logger.LogInformation("Mensaje de WhatsApp recibido de número no vinculado: {Phone}.", from);
+                response = "Tu número todavía no está vinculado a una cuenta de FinanzasIA.\n\nIngresá al sistema y vinculá tu número desde Configuración.";
             }
             else if (!string.IsNullOrWhiteSpace(imageId))
             {

@@ -120,9 +120,6 @@ public class FinanzasDbContext : DbContext
             entity.Property(x => x.Nombre)
                   .HasMaxLength(100);
 
-            entity.Property(x => x.CodigoVerificacion)
-                  .HasMaxLength(10);
-
             entity.HasIndex(x => new { x.NumeroTelefono, x.Canal }).IsUnique();
             entity.HasIndex(x => x.UsuarioId);
         });

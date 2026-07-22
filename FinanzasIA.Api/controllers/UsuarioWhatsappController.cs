@@ -10,18 +10,19 @@ public class UsuarioWhatsappController : ControllerBase
 {
     private readonly IUsuarioWhatsappService _service;
 
-    // SOLO PARA PRUEBAS
-    private const string UsuarioId = "141b28d8-ddd3-4435-9894-2f430d76a8d9";
-
     public UsuarioWhatsappController(IUsuarioWhatsappService service)
     {
         _service = service;
     }
 
+    private string? UsuarioId =>
+        Request.Headers.TryGetValue("X-User-Id", out var values) ? values.ToString() : null;
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyCollection<UsuarioWhatsappDto>>> GetNumeros(
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(UsuarioId)) return Unauthorized();
         return Ok(await _service.ObtenerNumerosAsync(UsuarioId, cancellationToken));
     }
 
@@ -30,23 +31,8 @@ public class UsuarioWhatsappController : ControllerBase
     [FromBody] VincularNumeroDto dto,
     CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(UsuarioId)) return Unauthorized();
         return Ok(await _service.VincularAsync(dto, UsuarioId, cancellationToken));
-    }
-
-    [HttpPost("verificar")]
-    public async Task<ActionResult<VinculacionResultDto>> Verificar(
-        [FromBody] VerificarNumeroDto dto,
-        CancellationToken cancellationToken)
-    {
-        return Ok(await _service.VerificarAsync(dto, UsuarioId, cancellationToken));
-    }
-
-    [HttpPost("{id:int}/reenviar-codigo")]
-    public async Task<ActionResult<VinculacionResultDto>> ReenviarCodigo(
-        int id,
-        CancellationToken cancellationToken)
-    {
-        return Ok(await _service.ReenviarCodigoAsync(id, UsuarioId, cancellationToken));
     }
 
     [HttpDelete("{id:int}")]
@@ -54,6 +40,7 @@ public class UsuarioWhatsappController : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(UsuarioId)) return Unauthorized();
         var ok = await _service.DesvincularAsync(id, UsuarioId, cancellationToken);
         return ok ? NoContent() : NotFound();
     }
