@@ -1573,3 +1573,70 @@ html[data-theme="dark"] .income-prompt-card {
     color: #e2e8f0;
 }
 
+/* ===== Fondo azul unificado para todas las secciones ===== */
+
+.feature-card,
+.report-loading,
+.metric-card,
+.dashboard-panel,
+.sugerencia-card,
+.asistente-chat,
+.auth-card,
+.income-prompt-card,
+.notifications-panel,
+.demo-banner,
+.table {
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #e2e8f0;
+}
+
+.asistente-mensajes {
+    background:
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 45%),
+        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.1), transparent 45%),
+        linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+}
+
+.asistente-burbuja.bot {
+    background: rgba(30, 41, 59, 0.92);
+    border-color: rgba(148, 163, 184, 0.22);
+    color: #e2e8f0;
+}
+
+.asistente-vacio {
+    color: #94a3b8;
+}
+
+.table thead th {
+    background: #172554;
+    color: #bfdbfe;
+}
+
+.metric-card strong,
+.feature-card h1, .feature-card h2, .feature-card h3, .feature-card h4, .feature-card h5,
+.dashboard-panel h1, .dashboard-panel h2, .dashboard-panel h3, .dashboard-panel h4, .dashboard-panel h5,
+.sugerencia-titulo,
+.income-prompt-card h3,
+.auth-card h1, .auth-card h2 {
+    color: #f8fafc;
+}
+
+.metric-card span, .metric-card small,
+.sugerencia-mensaje,
+.demo-banner span {
+    color: #94a3b8;
+}
+
+.donut-hole {
+    background: #0f172a;
+}
+
+.page-heading h1 {
+    color: #f8fafc;
+}
+
+.page-heading p {
+    color: #cbd5e1;
+}
+
