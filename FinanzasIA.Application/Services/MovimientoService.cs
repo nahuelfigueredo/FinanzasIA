@@ -103,7 +103,8 @@ public class MovimientoService : IMovimientoService
             CuentaNombre = movimiento.Cuenta?.Nombre,
             Descripcion = movimiento.Descripcion,
             Monto = movimiento.Monto,
-            Fecha = movimiento.Fecha
+            Fecha = movimiento.Fecha,
+            UsuarioId = movimiento.UsuarioId
         };
     }
 }

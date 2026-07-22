@@ -22,10 +22,11 @@ public class MovimientoRepository : IMovimientoRepository
             .Include(x => x.Cuenta)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(usuarioId))
-        {
-            query = query.Where(x => x.UsuarioId == usuarioId);
-        }
+        // Filtro estricto: si no hay usuario solo se devuelven registros sin dueño,
+        // nunca los datos de otros usuarios.
+        query = string.IsNullOrWhiteSpace(usuarioId)
+            ? query.Where(x => x.UsuarioId == null)
+            : query.Where(x => x.UsuarioId == usuarioId);
 
         return await query
             .OrderByDescending(x => x.Fecha)

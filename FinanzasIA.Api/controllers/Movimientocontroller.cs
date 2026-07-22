@@ -20,6 +20,11 @@ public class MovimientoController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyCollection<MovimientoDto>>> GetAll(CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            return Unauthorized("Falta el usuario autenticado.");
+        }
+
         var movimientos = await _movimientoService.GetAllAsync(UserId, cancellationToken);
         return Ok(movimientos);
     }
@@ -28,12 +33,17 @@ public class MovimientoController : ControllerBase
     public async Task<ActionResult<MovimientoDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var movimiento = await _movimientoService.GetByIdAsync(id, cancellationToken);
-        return movimiento is null ? NotFound() : Ok(movimiento);
+        return movimiento is null || movimiento.UsuarioId != UserId ? NotFound() : Ok(movimiento);
     }
 
     [HttpPost]
     public async Task<ActionResult<MovimientoDto>> Create([FromBody] CreateMovimientoDto dto, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(UserId))
+        {
+            return Unauthorized("Falta el usuario autenticado.");
+        }
+
         var movimiento = await _movimientoService.CreateAsync(dto, UserId, cancellationToken);
         if (movimiento is null)
         {
@@ -47,7 +57,7 @@ public class MovimientoController : ControllerBase
     public async Task<ActionResult<MovimientoDto>> Update(int id, [FromBody] UpdateMovimientoDto dto, CancellationToken cancellationToken)
     {
         var existing = await _movimientoService.GetByIdAsync(id, cancellationToken);
-        if (existing is null)
+        if (existing is null || existing.UsuarioId != UserId)
         {
             return NotFound();
         }
@@ -64,6 +74,12 @@ public class MovimientoController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
+        var existing = await _movimientoService.GetByIdAsync(id, cancellationToken);
+        if (existing is null || existing.UsuarioId != UserId)
+        {
+            return NotFound();
+        }
+
         var deleted = await _movimientoService.DeleteAsync(id, cancellationToken);
         return deleted ? NoContent() : NotFound();
     }
