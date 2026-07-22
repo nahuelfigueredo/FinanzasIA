@@ -86,19 +86,48 @@
                 <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Configuración
             </NavLink>
         </div>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3 nav-session">
-                    <div class="nav-user">👤 @(context.User.Identity?.Name)</div>
-                    <form action="/logout" method="post">
-                        <AntiforgeryToken />
-                        <button type="submit" class="nav-link nav-logout">
-                            <span class="bi bi-arrow-bar-left" aria-hidden="true"></span> Cerrar sesión
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-        </AuthorizeView>
     </nav>
 </div>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="nav-user-footer">
+            <div class="nav-user-card">
+                <div class="nav-user-avatar" aria-hidden="true">
+                    @GetInitials(context.User.Identity?.Name)
+                </div>
+                <div class="nav-user-info">
+                    <span class="nav-user-name">@GetDisplayName(context.User.Identity?.Name)</span>
+                    <span class="nav-user-email">@(context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? context.User.Identity?.Name)</span>
+                </div>
+                <form action="/logout" method="post" class="nav-logout-form">
+                    <AntiforgeryToken />
+                    <button type="submit" class="nav-logout-btn" title="Cerrar sesión">
+                        <span class="bi bi-arrow-bar-left" aria-hidden="true"></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var visible = name.Contains('@') ? name[..name.IndexOf('@')] : name;
+        var parts = visible.Split([' ', '.', '_', '-'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => "?",
+            1 => char.ToUpperInvariant(parts[0][0]).ToString(),
+            _ => $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+        };
+    }
+
+    private static string GetDisplayName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Usuario";
+        return name.Contains('@') ? name[..name.IndexOf('@')] : name;
+    }
+}

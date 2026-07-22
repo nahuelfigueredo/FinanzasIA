@@ -5,188 +5,340 @@
 
 <PageTitle>Categorías</PageTitle>
 
-<div class="page-heading">
-    <span class="page-icon" aria-hidden="true">🏷️</span>
-    <div>
-        <h1>Categorías</h1>
-        <p>Organizá tus movimientos para que los reportes sean más claros.</p>
-    </div>
+<div class="cat-header">
+	<div class="cat-header-text">
+		<h1>Categorías</h1>
+		<p>Organizá tus ingresos y egresos mediante categorías personalizadas.</p>
+	</div>
+	<button class="cat-new-btn" type="button" @onclick="ScrollToForm">
+		<span aria-hidden="true">＋</span> Nueva categoría
+	</button>
 </div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+	<div class="alert alert-danger" role="alert">@_errorMessage</div>
 }
 else if (!string.IsNullOrWhiteSpace(_successMessage))
 {
-    <div class="alert alert-success" role="alert">@_successMessage</div>
+	<div class="alert alert-success" role="alert">@_successMessage</div>
 }
 
-<div class="dashboard-panel mb-4">
-<h4 class="mb-3"><span class="section-icon" aria-hidden="true">✨</span> @(_editingId.HasValue ? "Editar categoría" : "Nueva categoría")</h4>
-<EditForm FormName="categoria-form" Model="_form" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <label class="form-label">Nombre</label>
-            <InputText class="form-control" @bind-Value="_form.Nombre" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Tipo</label>
-            <InputSelect class="form-select" @bind-Value="_form.TipoMovimiento">
-                @foreach (var tipo in Enum.GetValues<TipoMovimiento>())
-                {
-                    <option value="@tipo">@tipo</option>
-                }
-            </InputSelect>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">
-                💾 @(_editingId.HasValue ? "Actualizar" : "Crear")
-            </button>
-        </div>
-    </div>
-</EditForm>
+<div class="cat-card cat-form-card" id="categoria-form-card">
+	<div class="cat-card-header">
+		<span class="cat-card-icon" aria-hidden="true">✨</span>
+		<h4>@(_editingId.HasValue ? "Editar categoría" : "Nueva categoría")</h4>
+	</div>
+	<EditForm FormName="categoria-form" Model="_form" OnValidSubmit="SaveAsync">
+		<DataAnnotationsValidator />
+		<ValidationSummary />
+		<div class="row g-3">
+			<div class="col-md-6">
+				<label class="form-label">Nombre</label>
+				<InputText class="form-control" placeholder="Ej: Supermercado" @bind-Value="_form.Nombre" />
+			</div>
+			<div class="col-md-3">
+				<label class="form-label">Tipo</label>
+				<InputSelect class="form-select" @bind-Value="_form.TipoMovimiento">
+					@foreach (var tipo in Enum.GetValues<TipoMovimiento>())
+					{
+						<option value="@tipo">@tipo</option>
+					}
+				</InputSelect>
+			</div>
+			<div class="col-md-3 d-flex align-items-end">
+				<button type="submit" class="btn btn-primary w-100 cat-submit-btn">
+					@(_editingId.HasValue ? "Actualizar categoría" : "Crear categoría")
+				</button>
+			</div>
+		</div>
+	</EditForm>
+	@if (_editingId.HasValue)
+	{
+		<button class="btn btn-link p-0 mt-2" @onclick="CancelEdit">Cancelar edición</button>
+	}
 </div>
 
-@if (_editingId.HasValue)
-{
-    <button class="btn btn-link p-0 mb-3" @onclick="CancelEdit">Cancelar edición</button>
-}
+<div class="cat-card cat-list-card">
+	<div class="cat-toolbar">
+		<div class="cat-toolbar-title">
+			<h5>Tus categorías</h5>
+			<span class="cat-count">@_filtered.Count de @_categorias.Count</span>
+		</div>
+		<div class="cat-toolbar-controls">
+			<input class="form-control cat-search" type="search" placeholder="🔍 Buscar categoría..."
+				   value="@_searchText" @oninput="OnSearchChanged" />
+			<div class="cat-filter-group" role="group" aria-label="Filtrar por tipo">
+				<button type="button" class="cat-filter-btn @(_filterTipo is null ? "active" : null)"
+						@onclick="() => SetFilter(null)">Todas</button>
+				<button type="button" class="cat-filter-btn @(_filterTipo == TipoMovimiento.Ingreso ? "active" : null)"
+						@onclick="() => SetFilter(TipoMovimiento.Ingreso)">Ingresos</button>
+				<button type="button" class="cat-filter-btn @(_filterTipo == TipoMovimiento.Egreso ? "active" : null)"
+						@onclick="() => SetFilter(TipoMovimiento.Egreso)">Egresos</button>
+			</div>
+		</div>
+	</div>
 
-@if (_categorias.Count == 0)
-{
-    <div class="alert alert-info" role="alert">
-        No hay categorías cargadas todavía.
-    </div>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Tipo</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var categoria in _categorias)
-            {
-                <tr>
-                    <td>@categoria.Id</td>
-                    <td>@categoria.Nombre</td>
-                    <td>@categoria.TipoMovimiento</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => Edit(categoria)">✏️ Editar</button>
-                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(categoria.Id)">🗑️ Eliminar</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+	@if (_categorias.Count == 0)
+	{
+		<div class="cat-empty">
+			<span aria-hidden="true">🏷️</span>
+			<strong>No hay categorías cargadas todavía.</strong>
+			<p>Creá tu primera categoría con el formulario de arriba.</p>
+		</div>
+	}
+	else if (_filtered.Count == 0)
+	{
+		<div class="cat-empty">
+			<span aria-hidden="true">🔍</span>
+			<strong>Sin resultados.</strong>
+			<p>Probá con otro texto o cambiá el filtro.</p>
+		</div>
+	}
+	else
+	{
+		<div class="table-responsive">
+			<table class="table align-middle cat-table">
+				<thead>
+					<tr>
+						<th>Nombre</th>
+						<th>Tipo</th>
+						<th>Uso</th>
+						<th class="text-end">Acciones</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var categoria in _pageItems)
+					{
+						<tr>
+							<td>
+								<span class="cat-name">
+									<span class="cat-emoji" aria-hidden="true">@GetIcono(categoria.Nombre, categoria.TipoMovimiento)</span>
+									@categoria.Nombre
+								</span>
+							</td>
+							<td>
+								@if (categoria.TipoMovimiento == TipoMovimiento.Ingreso)
+								{
+									<span class="cat-badge cat-badge-ingreso">Ingreso</span>
+								}
+								else
+								{
+									<span class="cat-badge cat-badge-egreso">Egreso</span>
+								}
+							</td>
+							<td>
+								<span class="cat-uso">@GetUso(categoria.Id) movimientos</span>
+							</td>
+							<td class="text-end">
+								<div class="cat-actions">
+									<button class="cat-action-btn cat-action-edit" type="button" title="Editar categoría"
+											@onclick="() => Edit(categoria)">✏️</button>
+									<button class="cat-action-btn cat-action-delete" type="button" title="Eliminar categoría"
+											@onclick="() => DeleteAsync(categoria.Id)">🗑️</button>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+
+		@if (TotalPages > 1)
+		{
+			<div class="cat-pagination">
+				<button type="button" class="cat-page-btn" disabled="@(_page == 1)" @onclick="() => GoToPage(_page - 1)">‹</button>
+				@for (var i = 1; i <= TotalPages; i++)
+				{
+					var pageNumber = i;
+					<button type="button" class="cat-page-btn @(pageNumber == _page ? "active" : null)"
+							@onclick="() => GoToPage(pageNumber)">@pageNumber</button>
+				}
+				<button type="button" class="cat-page-btn" disabled="@(_page == TotalPages)" @onclick="() => GoToPage(_page + 1)">›</button>
+			</div>
+		}
+	}
+</div>
 
 @code {
-    private readonly List<CategoriaDto> _categorias = [];
-    private CategoriaFormModel _form = new();
-    private int? _editingId;
-    private string? _errorMessage;
-    private string? _successMessage;
+	private const int PageSize = 8;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadCategoriasAsync();
-    }
+	private readonly List<CategoriaDto> _categorias = [];
+	private Dictionary<int, int> _usoPorCategoria = [];
+	private CategoriaFormModel _form = new();
+	private int? _editingId;
+	private string? _errorMessage;
+	private string? _successMessage;
+	private string _searchText = string.Empty;
+	private TipoMovimiento? _filterTipo;
+	private int _page = 1;
 
-    private async Task LoadCategoriasAsync()
-    {
-        _errorMessage = null;
-        try
-        {
-            var categorias = await ApiClient.GetCategoriasAsync();
-            _categorias.Clear();
-            _categorias.AddRange(categorias);
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = ex.Message;
-        }
-    }
+	private List<CategoriaDto> _filtered =>
+		_categorias
+			.Where(c => _filterTipo is null || c.TipoMovimiento == _filterTipo)
+			.Where(c => string.IsNullOrWhiteSpace(_searchText)
+				|| c.Nombre.Contains(_searchText.Trim(), StringComparison.OrdinalIgnoreCase))
+			.OrderBy(c => c.Nombre, StringComparer.OrdinalIgnoreCase)
+			.ToList();
 
-    private async Task SaveAsync()
-    {
-        _errorMessage = null;
-        _successMessage = null;
-        try
-        {
-            if (_editingId.HasValue)
-            {
-                await ApiClient.UpdateCategoriaAsync(_editingId.Value, new UpdateCategoriaDto
-                {
-                    Nombre = _form.Nombre,
-                    TipoMovimiento = _form.TipoMovimiento
-                });
-                _successMessage = "Categoría actualizada correctamente.";
-            }
-            else
-            {
-                await ApiClient.CreateCategoriaAsync(new CreateCategoriaDto
-                {
-                    Nombre = _form.Nombre,
-                    TipoMovimiento = _form.TipoMovimiento
-                });
-                _successMessage = "Categoría creada correctamente.";
-            }
+	private int TotalPages => Math.Max(1, (int)Math.Ceiling(_filtered.Count / (double)PageSize));
 
-            CancelEdit();
-            await LoadCategoriasAsync();
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = ex.Message;
-        }
-    }
+	private List<CategoriaDto> _pageItems =>
+		_filtered.Skip((Math.Min(_page, TotalPages) - 1) * PageSize).Take(PageSize).ToList();
 
-    private void Edit(CategoriaDto categoria)
-    {
-        _editingId = categoria.Id;
-        _form = new CategoriaFormModel
-        {
-            Nombre = categoria.Nombre,
-            TipoMovimiento = categoria.TipoMovimiento
-        };
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadCategoriasAsync();
+	}
 
-    private async Task DeleteAsync(int id)
-    {
-        _errorMessage = null;
-        _successMessage = null;
-        try
-        {
-            await ApiClient.DeleteCategoriaAsync(id);
-            await LoadCategoriasAsync();
-            _successMessage = "Categoría eliminada correctamente.";
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = ex.Message;
-        }
-    }
+	private async Task LoadCategoriasAsync()
+	{
+		_errorMessage = null;
+		try
+		{
+			var categorias = await ApiClient.GetCategoriasAsync();
+			_categorias.Clear();
+			_categorias.AddRange(categorias);
 
-    private void CancelEdit()
-    {
-        _editingId = null;
-        _form = new CategoriaFormModel();
-    }
+			try
+			{
+				var movimientos = await ApiClient.GetMovimientosAsync();
+				_usoPorCategoria = movimientos
+					.GroupBy(m => m.CategoriaId)
+					.ToDictionary(g => g.Key, g => g.Count());
+			}
+			catch
+			{
+				_usoPorCategoria = [];
+			}
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = ex.Message;
+		}
+	}
 
-    private class CategoriaFormModel
-    {
-        [Required(ErrorMessage = "El nombre es obligatorio.")]
-        [MaxLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
-        public string Nombre { get; set; } = string.Empty;
-        public TipoMovimiento TipoMovimiento { get; set; } = TipoMovimiento.Egreso;
-    }
+	private int GetUso(int categoriaId) => _usoPorCategoria.GetValueOrDefault(categoriaId);
+
+	private void OnSearchChanged(ChangeEventArgs e)
+	{
+		_searchText = e.Value?.ToString() ?? string.Empty;
+		_page = 1;
+	}
+
+	private void SetFilter(TipoMovimiento? tipo)
+	{
+		_filterTipo = tipo;
+		_page = 1;
+	}
+
+	private void GoToPage(int page)
+	{
+		_page = Math.Clamp(page, 1, TotalPages);
+	}
+
+	private void ScrollToForm()
+	{
+		CancelEdit();
+	}
+
+	private static string GetIcono(string nombre, TipoMovimiento tipo)
+	{
+		var n = nombre.ToLowerInvariant();
+		if (n.Contains("carnicer") || n.Contains("super") || n.Contains("almac") || n.Contains("verduler")) return "🛒";
+		if (n.Contains("celular") || n.Contains("tel")) return "📱";
+		if (n.Contains("gas")) return "🔥";
+		if (n.Contains("gym") || n.Contains("gimnas") || n.Contains("deporte")) return "🏋️";
+		if (n.Contains("luz") || n.Contains("electric")) return "💡";
+		if (n.Contains("panader") || n.Contains("pan")) return "🥖";
+		if (n.Contains("salario") || n.Contains("sueldo") || n.Contains("honorario")) return "💰";
+		if (n.Contains("agua")) return "💧";
+		if (n.Contains("internet") || n.Contains("wifi")) return "🌐";
+		if (n.Contains("alquiler") || n.Contains("casa") || n.Contains("hogar")) return "🏠";
+		if (n.Contains("auto") || n.Contains("nafta") || n.Contains("combustible") || n.Contains("transporte")) return "🚗";
+		if (n.Contains("salud") || n.Contains("farmacia") || n.Contains("medic")) return "💊";
+		if (n.Contains("educaci") || n.Contains("curso") || n.Contains("colegio")) return "📚";
+		if (n.Contains("comida") || n.Contains("restaurante") || n.Contains("delivery")) return "🍽️";
+		if (n.Contains("ropa") || n.Contains("indument")) return "👕";
+		if (n.Contains("viaje") || n.Contains("vacacion")) return "✈️";
+		if (n.Contains("regalo")) return "🎁";
+		if (n.Contains("mascota")) return "🐾";
+		if (n.Contains("inversi") || n.Contains("ahorro")) return "📈";
+		if (n.Contains("entretenimiento") || n.Contains("cine") || n.Contains("stream")) return "🎬";
+		return tipo == TipoMovimiento.Ingreso ? "💵" : "🏷️";
+	}
+
+	private async Task SaveAsync()
+	{
+		_errorMessage = null;
+		_successMessage = null;
+		try
+		{
+			if (_editingId.HasValue)
+			{
+				await ApiClient.UpdateCategoriaAsync(_editingId.Value, new UpdateCategoriaDto
+				{
+					Nombre = _form.Nombre,
+					TipoMovimiento = _form.TipoMovimiento
+				});
+				_successMessage = "Categoría actualizada correctamente.";
+			}
+			else
+			{
+				await ApiClient.CreateCategoriaAsync(new CreateCategoriaDto
+				{
+					Nombre = _form.Nombre,
+					TipoMovimiento = _form.TipoMovimiento
+				});
+				_successMessage = "Categoría creada correctamente.";
+			}
+
+			CancelEdit();
+			await LoadCategoriasAsync();
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = ex.Message;
+		}
+	}
+
+	private void Edit(CategoriaDto categoria)
+	{
+		_editingId = categoria.Id;
+		_form = new CategoriaFormModel
+		{
+			Nombre = categoria.Nombre,
+			TipoMovimiento = categoria.TipoMovimiento
+		};
+	}
+
+	private async Task DeleteAsync(int id)
+	{
+		_errorMessage = null;
+		_successMessage = null;
+		try
+		{
+			await ApiClient.DeleteCategoriaAsync(id);
+			await LoadCategoriasAsync();
+			_successMessage = "Categoría eliminada correctamente.";
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = ex.Message;
+		}
+	}
+
+	private void CancelEdit()
+	{
+		_editingId = null;
+		_form = new CategoriaFormModel();
+	}
+
+	private class CategoriaFormModel
+	{
+		[Required(ErrorMessage = "El nombre es obligatorio.")]
+		[MaxLength(100, ErrorMessage = "El nombre no puede superar los 100 caracteres.")]
+		public string Nombre { get; set; } = string.Empty;
+		public TipoMovimiento TipoMovimiento { get; set; } = TipoMovimiento.Egreso;
+	}
 }
