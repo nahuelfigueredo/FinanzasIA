@@ -44,19 +44,6 @@ main {
         min-width: 0;
     }
 
-    .top-row ::deep .theme-toggle {
-        align-items: center;
-        background: #0f172a;
-        border: 0;
-        border-radius: 999px;
-        color: white;
-        display: inline-flex;
-        font-weight: 800;
-        gap: 0.45rem;
-        padding: 0.65rem 0.9rem;
-        white-space: nowrap;
-    }
-
     .top-row ::deep .install-app-prompt span {
         color: #555;
         display: block;

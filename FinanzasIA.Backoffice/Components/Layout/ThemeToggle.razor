@@ -1,9 +1,8 @@
 @rendermode InteractiveServer
 @inject IJSRuntime JSRuntime
 
-<button type="button" class="theme-toggle" @onclick="ToggleThemeAsync" title="Cambiar tema">
+<button type="button" class="theme-toggle theme-toggle-icon" @onclick="ToggleThemeAsync" title="@(_isDark ? "Modo claro" : "Modo oscuro")" aria-label="Cambiar tema">
     <span aria-hidden="true">@(_isDark ? "☀️" : "🌙")</span>
-    <span>@(_isDark ? "Claro" : "Oscuro")</span>
 </button>
 
 @code {
