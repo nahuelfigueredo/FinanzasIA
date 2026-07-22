@@ -125,6 +125,13 @@ html[data-theme="dark"] .top-row {
     margin-right: 0.5rem;
 }
 
+@media (max-width: 640.98px) {
+    .brand-actions {
+        /* deja espacio para el botón de menú (hamburguesa) posicionado a la derecha */
+        margin-right: 4.75rem;
+    }
+}
+
 .theme-toggle {
     align-items: center;
     background: rgba(255, 255, 255, 0.12);
