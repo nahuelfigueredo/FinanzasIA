@@ -1,5 +1,5 @@
 html, body {
-    background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.42), transparent 34%), linear-gradient(180deg, #0f172a 0%, #111827 52%, #172554 100%);
+    background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 34%), linear-gradient(180deg, #dbe7ff 0%, #cfe0fb 52%, #dbeafe 100%);
     background-attachment: fixed;
     min-height: 100vh;
     color: #0f172a;
@@ -114,27 +114,6 @@ html[data-theme="dark"] .top-row {
     border-bottom-color: rgba(148, 163, 184, 0.16);
 }
 
-.brand-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-
-.brand-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-right: 0.5rem;
-}
-
-@media (max-width: 640.98px) {
-    .brand-actions {
-        /* deja espacio para el botón de menú (hamburguesa) posicionado a la derecha */
-        margin-right: 4.75rem;
-    }
-}
-
 .theme-toggle {
     align-items: center;
     background: rgba(255, 255, 255, 0.12);
@@ -157,8 +136,14 @@ html[data-theme="dark"] .top-row {
 }
 
 html[data-theme="dark"] .theme-toggle {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
     color: #f8fafc;
+}
+
+html:not([data-theme="dark"]) .theme-toggle {
+    background: rgba(255, 255, 255, 0.32);
+    border-color: rgba(255, 255, 255, 0.45);
 }
 
 .notifications-bell {
@@ -1575,68 +1560,44 @@ html[data-theme="dark"] .income-prompt-card {
 
 /* ===== Fondo azul unificado para todas las secciones ===== */
 
-.feature-card,
-.report-loading,
-.metric-card,
-.dashboard-panel,
-.sugerencia-card,
-.asistente-chat,
-.auth-card,
-.income-prompt-card,
-.notifications-panel,
-.demo-banner,
-.table {
+html:not([data-theme="dark"]) .feature-card,
+html:not([data-theme="dark"]) .report-loading,
+html:not([data-theme="dark"]) .metric-card,
+html:not([data-theme="dark"]) .dashboard-panel,
+html:not([data-theme="dark"]) .sugerencia-card,
+html:not([data-theme="dark"]) .asistente-chat,
+html:not([data-theme="dark"]) .auth-card,
+html:not([data-theme="dark"]) .income-prompt-card,
+html:not([data-theme="dark"]) .notifications-panel,
+html:not([data-theme="dark"]) .demo-banner,
+html:not([data-theme="dark"]) .table {
+    background: rgba(239, 246, 255, 0.92);
+    border-color: rgba(59, 130, 246, 0.22);
+    color: #0f172a;
+}
+
+html[data-theme="dark"] .sugerencia-card,
+html[data-theme="dark"] .asistente-chat,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .income-prompt-card,
+html[data-theme="dark"] .notifications-panel {
     background: rgba(15, 23, 42, 0.88);
     border-color: rgba(148, 163, 184, 0.22);
     color: #e2e8f0;
 }
 
-.asistente-mensajes {
-    background:
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 45%),
-        radial-gradient(circle at bottom left, rgba(20, 184, 166, 0.1), transparent 45%),
-        linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
-}
-
-.asistente-burbuja.bot {
-    background: rgba(30, 41, 59, 0.92);
-    border-color: rgba(148, 163, 184, 0.22);
-    color: #e2e8f0;
-}
-
-.asistente-vacio {
-    color: #94a3b8;
-}
-
-.table thead th {
-    background: #172554;
-    color: #bfdbfe;
-}
-
-.metric-card strong,
-.feature-card h1, .feature-card h2, .feature-card h3, .feature-card h4, .feature-card h5,
-.dashboard-panel h1, .dashboard-panel h2, .dashboard-panel h3, .dashboard-panel h4, .dashboard-panel h5,
-.sugerencia-titulo,
-.income-prompt-card h3,
-.auth-card h1, .auth-card h2 {
+html[data-theme="dark"] .metric-card strong,
+html[data-theme="dark"] .sugerencia-titulo,
+html[data-theme="dark"] .income-prompt-card h3,
+html[data-theme="dark"] .auth-card h1,
+html[data-theme="dark"] .auth-card h2,
+html[data-theme="dark"] .page-heading h1 {
     color: #f8fafc;
 }
 
-.metric-card span, .metric-card small,
-.sugerencia-mensaje,
-.demo-banner span {
+html[data-theme="dark"] .metric-card span,
+html[data-theme="dark"] .metric-card small,
+html[data-theme="dark"] .page-heading p {
     color: #94a3b8;
-}
-
-.donut-hole {
-    background: #0f172a;
-}
-
-.page-heading h1 {
-    color: #f8fafc;
-}
-
-.page-heading p {
-    color: #cbd5e1;
 }
 

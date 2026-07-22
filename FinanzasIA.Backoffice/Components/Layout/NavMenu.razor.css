@@ -33,6 +33,13 @@
     margin-right: auto;
 }
 
+@media (max-width: 640.98px) {
+    /* deja libre la zona del botón hamburguesa (posicionado a la derecha) */
+    .brand-row {
+        padding-right: 5rem;
+    }
+}
+
 .navbar-brand {
     align-items: center;
     display: flex;
