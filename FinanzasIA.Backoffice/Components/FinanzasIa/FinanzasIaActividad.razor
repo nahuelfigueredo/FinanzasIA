@@ -35,11 +35,20 @@
 
 @if (_cargando)
 {
-    <p class="text-muted">Cargando actividad...</p>
+    <div class="skeleton-grid" aria-label="Cargando actividad">
+        <div class="skeleton skeleton-panel"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
 }
 else if (!MensajesFiltrados.Any())
 {
-    <p class="text-muted">No hay eventos para los filtros seleccionados.</p>
+    <div class="dashboard-panel">
+        <div class="empty-state">
+            <div>📭</div>
+            <strong>No hay eventos para los filtros seleccionados</strong>
+            <span class="text-secondary">Ajustá las fechas o los filtros para ver más actividad.</span>
+        </div>
+    </div>
 }
 else
 {

@@ -4,16 +4,34 @@
 
 <PageTitle>Reporte por categorías</PageTitle>
 
-<h1 class="mb-1">Reporte por categorías</h1>
-<p class="text-muted mb-4">Distribución de ingresos y egresos por categoría.</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🏷️</span>
+    <div>
+        <h1>Reporte por categorías</h1>
+        <p>Distribución de ingresos y egresos por categoría.</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+    <div class="alert alert-warning" role="alert">No pudimos cargar el reporte por categorías. Reintentá en unos segundos. (@_errorMessage)</div>
 }
 else if (_isLoading)
 {
-    <p>Cargando...</p>
+    <div class="skeleton-grid" aria-label="Cargando reporte por categorías">
+        <div class="skeleton skeleton-panel"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
+}
+else if (!Grupos.Any())
+{
+    <div class="dashboard-panel">
+        <div class="empty-state">
+            <div>🏷️</div>
+            <strong>Sin movimientos registrados</strong>
+            <a class="empty-action" href="movimientos">Registrar un movimiento</a>
+        </div>
+    </div>
 }
 else
 {
@@ -43,10 +61,6 @@ else
                                 </div>
                             </td>
                         </tr>
-                    }
-                    @if (!Grupos.Any())
-                    {
-                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos registrados.</td></tr>
                     }
                 </tbody>
             </table>

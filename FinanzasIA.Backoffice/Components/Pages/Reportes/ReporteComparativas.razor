@@ -4,16 +4,24 @@
 
 <PageTitle>Comparativas</PageTitle>
 
-<h1 class="mb-1">Comparativas</h1>
-<p class="text-muted mb-4">Mes actual vs. mes anterior.</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">⚖️</span>
+    <div>
+        <h1>Comparativas</h1>
+        <p>Mes actual vs. mes anterior.</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+    <div class="alert alert-warning" role="alert">No pudimos cargar las comparativas. Reintentá en unos segundos. (@_errorMessage)</div>
 }
 else if (_isLoading)
 {
-    <p>Cargando...</p>
+    <div class="skeleton-grid" aria-label="Cargando comparativas">
+        <div class="skeleton skeleton-panel"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
 }
 else
 {
@@ -76,7 +84,13 @@ else
                     }
                     @if (!CategoriasComparadas.Any())
                     {
-                        <tr><td colspan="4" class="text-center text-muted">Sin egresos para comparar.</td></tr>
+                        <tr><td colspan="4">
+                            <div class="empty-state">
+                                <div>⚖️</div>
+                                <strong>Sin egresos para comparar</strong>
+                                <a class="empty-action" href="movimientos">Registrar un movimiento</a>
+                            </div>
+                        </td></tr>
                     }
                 </tbody>
             </table>

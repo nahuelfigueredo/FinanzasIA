@@ -4,16 +4,26 @@
 
 <PageTitle>Reporte anual</PageTitle>
 
-<h1 class="mb-1">Reporte anual</h1>
-<p class="text-muted mb-4">Evolución mes a mes de @DateTime.Today.Year.</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">📈</span>
+    <div>
+        <h1>Reporte anual</h1>
+        <p>Evolución mes a mes de @DateTime.Today.Year.</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+    <div class="alert alert-warning" role="alert">No pudimos cargar el reporte anual. Reintentá en unos segundos. (@_errorMessage)</div>
 }
 else if (_isLoading)
 {
-    <p>Cargando...</p>
+    <div class="skeleton-grid" aria-label="Cargando reporte anual">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
 }
 else
 {

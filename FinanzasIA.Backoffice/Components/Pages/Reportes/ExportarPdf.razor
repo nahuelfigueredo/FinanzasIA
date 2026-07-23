@@ -5,16 +5,23 @@
 
 <PageTitle>Exportar PDF</PageTitle>
 
-<h1 class="mb-1">Exportar PDF</h1>
-<p class="text-muted mb-4">Generá un PDF con tus movimientos usando la impresión del navegador (elegí "Guardar como PDF").</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">📄</span>
+    <div>
+        <h1>Exportar PDF</h1>
+        <p>Generá un PDF con tus movimientos usando la impresión del navegador (elegí "Guardar como PDF").</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+    <div class="alert alert-warning" role="alert">No pudimos cargar tus movimientos. Reintentá en unos segundos. (@_errorMessage)</div>
 }
 else if (_isLoading)
 {
-    <p>Cargando...</p>
+    <div class="skeleton-grid" aria-label="Cargando movimientos">
+        <div class="skeleton skeleton-panel"></div>
+    </div>
 }
 else
 {
@@ -56,7 +63,13 @@ else
                     }
                     @if (!Filtrados.Any())
                     {
-                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos en el rango elegido.</td></tr>
+                        <tr><td colspan="5">
+                            <div class="empty-state">
+                                <div>📭</div>
+                                <strong>Sin movimientos en el rango elegido</strong>
+                                <span class="text-secondary">Ajustá las fechas o registrá nuevos movimientos.</span>
+                            </div>
+                        </td></tr>
                     }
                 </tbody>
                 <tfoot>

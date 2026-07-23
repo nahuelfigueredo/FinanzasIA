@@ -1589,6 +1589,16 @@ body,
     grid-column: span 2;
 }
 
+@media (max-width: 768px) {
+    .skeleton-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .skeleton-panel {
+        grid-column: span 1;
+    }
+}
+
 html[data-theme="dark"] .skeleton {
     background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
     background-size: 200% 100%;

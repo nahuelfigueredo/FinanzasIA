@@ -5,8 +5,13 @@
 
 <PageTitle>Exportar Excel</PageTitle>
 
-<h1 class="mb-1">Exportar Excel</h1>
-<p class="text-muted mb-4">Descargá tus movimientos en formato compatible con Excel (CSV).</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">📊</span>
+    <div>
+        <h1>Exportar Excel</h1>
+        <p>Descargá tus movimientos en formato compatible con Excel (CSV).</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
@@ -26,7 +31,15 @@
             </div>
             <div class="col-md-4">
                 <button type="button" class="btn btn-success w-100" @onclick="ExportarAsync" disabled="@_exporting">
-                    @(_exporting ? "Generando..." : "Descargar Excel (CSV)")
+                    @if (_exporting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Generando...</span>
+                    }
+                    else
+                    {
+                        <span>Descargar Excel (CSV)</span>
+                    }
                 </button>
             </div>
         </div>

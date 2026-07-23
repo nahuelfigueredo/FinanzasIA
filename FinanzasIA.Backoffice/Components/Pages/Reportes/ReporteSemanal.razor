@@ -4,16 +4,26 @@
 
 <PageTitle>Reporte semanal</PageTitle>
 
-<h1 class="mb-1">Reporte semanal</h1>
-<p class="text-muted mb-4">Resumen de los últimos 7 días.</p>
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">📆</span>
+    <div>
+        <h1>Reporte semanal</h1>
+        <p>Resumen de los últimos 7 días.</p>
+    </div>
+</div>
 
 @if (!string.IsNullOrWhiteSpace(_errorMessage))
 {
-    <div class="alert alert-warning" role="alert">@_errorMessage</div>
+    <div class="alert alert-warning" role="alert">No pudimos cargar el reporte semanal. Reintentá en unos segundos. (@_errorMessage)</div>
 }
 else if (_isLoading)
 {
-    <p>Cargando...</p>
+    <div class="skeleton-grid" aria-label="Cargando reporte semanal">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-panel"></div>
+    </div>
 }
 else
 {
@@ -41,6 +51,18 @@ else
         </div>
     </div>
 
+    @if (!Semana.Any())
+    {
+        <div class="dashboard-panel">
+            <div class="empty-state">
+                <div>📭</div>
+                <strong>Sin movimientos esta semana</strong>
+                <a class="empty-action" href="movimientos">Registrar un movimiento</a>
+            </div>
+        </div>
+    }
+    else
+    {
     <div class="card">
         <div class="card-body table-responsive">
             <table class="table align-middle">
@@ -64,15 +86,12 @@ else
                             <td class="text-end">@m.Monto.ToString("C")</td>
                         </tr>
                     }
-                    @if (!Semana.Any())
-                    {
-                        <tr><td colspan="5" class="text-center text-muted">Sin movimientos esta semana.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        }
                     }
-                </tbody>
-            </table>
-        </div>
-    </div>
-}
 
 @code {
     private IReadOnlyCollection<MovimientoDto> _movimientos = [];

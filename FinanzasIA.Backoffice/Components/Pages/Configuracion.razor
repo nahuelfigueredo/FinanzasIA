@@ -17,9 +17,9 @@
 
 @if (_isLoading)
 {
-    <div class="report-loading">
-        <div class="spinner-border text-primary" role="status"></div>
-        <span>Cargando configuración...</span>
+    <div class="skeleton-grid" aria-label="Cargando configuración">
+        <div class="skeleton skeleton-panel"></div>
+        <div class="skeleton skeleton-panel"></div>
     </div>
 }
 else
@@ -304,6 +304,12 @@ else
 
     private async Task EliminarNumeroAsync(int id)
     {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "¿Desvincular este número de WhatsApp?");
+        if (!confirmed)
+        {
+            return;
+        }
+
         _procesandoWhatsapp = true;
         try
         {
