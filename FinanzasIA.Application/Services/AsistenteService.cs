@@ -55,6 +55,14 @@ public class AsistenteService : IAsistenteService
 		}
 
 		var movimientos = await _movimientoRepository.GetAllAsync(usuarioId, cancellationToken);
+
+		// Si el usuario pide un gráfico, se responde con datos estructurados reales.
+		var grafico = GenerarGraficoSiCorresponde(pregunta.Pregunta.Trim(), movimientos);
+		if (grafico is not null)
+		{
+			return grafico;
+		}
+
 		var contexto = ConstruirContexto(movimientos);
 		var respuesta = await _iaProvider.GenerarRespuestaAsync(pregunta.Pregunta.Trim(), contexto, pregunta.Historial, cancellationToken);
 
@@ -64,6 +72,296 @@ public class AsistenteService : IAsistenteService
 	/// <summary>Determina si la intención corresponde a registrar un movimiento.</summary>
 	private static bool EsRegistroMovimiento(MessageIntent intent) =>
 		intent is MessageIntent.RegistrarGasto or MessageIntent.RegistrarIngreso or MessageIntent.Transferencia;
+
+	#region Gráficos
+
+	private static readonly CultureInfo Cultura = new("es-AR");
+
+	/// <summary>
+	/// Detecta si la pregunta pide una visualización y, de ser así, construye la
+	/// respuesta estructurada con datos reales del usuario. Devuelve null si no
+	/// corresponde un gráfico (el flujo sigue con la IA de texto).
+	/// </summary>
+	private static AsistenteRespuestaDto? GenerarGraficoSiCorresponde(string pregunta, IReadOnlyCollection<Core.Entities.Movimiento> movimientos)
+	{
+		var texto = QuitarAcentos(pregunta.ToLowerInvariant());
+
+		var mencionaGrafico = texto.Contains("grafic");
+		var mencionaComparar = texto.Contains("compar");
+		var mencionaEvolucion = texto.Contains("evolucion") || texto.Contains("evoluciona") || texto.Contains("tendencia");
+		var mencionaTop = texto.Contains("top ") || texto.StartsWith("top");
+		var mencionaBalance = texto.Contains("balance");
+		var mencionaPresupuesto = texto.Contains("presupuesto");
+		var mencionaCategoria = texto.Contains("categoria");
+		var mencionaIngresos = texto.Contains("ingreso");
+		var mencionaGastos = texto.Contains("gasto") || texto.Contains("egreso");
+
+		var pideVisual = mencionaGrafico || mencionaComparar || mencionaEvolucion || mencionaTop
+			|| (mencionaBalance && texto.Contains("mensual"))
+			|| (mencionaGrafico && mencionaPresupuesto);
+
+		if (!pideVisual)
+		{
+			return null;
+		}
+
+		if (movimientos.Count == 0)
+		{
+			return SinDatos();
+		}
+
+		// Top N categorías
+		if (mencionaTop && mencionaCategoria)
+		{
+			return GraficoTopCategorias(movimientos, texto);
+		}
+
+		// Gastos por categoría (torta)
+		if (mencionaCategoria)
+		{
+			return GraficoGastosPorCategoria(movimientos);
+		}
+
+		// Presupuesto: egresos mensuales vs promedio
+		if (mencionaPresupuesto)
+		{
+			return GraficoPresupuesto(movimientos);
+		}
+
+		// Balance mensual (barras ingresos vs egresos por mes)
+		if (mencionaBalance)
+		{
+			return GraficoBalanceMensual(movimientos);
+		}
+
+		// Comparativas / evolución de ingresos (líneas o barras por mes)
+		if (mencionaIngresos && (mencionaComparar || mencionaEvolucion || mencionaGrafico))
+		{
+			return GraficoSerieMensual(movimientos, TipoMovimiento.Ingreso, "Ingresos de los últimos 6 meses", mencionaEvolucion ? TipoGrafico.Lineas : TipoGrafico.Barras);
+		}
+
+		// Evolución / comparativa de gastos
+		if (mencionaGastos && (mencionaEvolucion || mencionaComparar))
+		{
+			// "Compará este mes con el anterior" → balance mensual acotado; si es evolución → líneas
+			return mencionaEvolucion
+				? GraficoSerieMensual(movimientos, TipoMovimiento.Egreso, "Evolución de gastos", TipoGrafico.Lineas)
+				: GraficoBalanceMensual(movimientos, meses: 2, titulo: "Este mes vs. el anterior");
+		}
+
+		// "Compará este mes con el anterior" sin mencionar gastos/ingresos
+		if (mencionaComparar && (texto.Contains("mes") || texto.Contains("anterior")))
+		{
+			return GraficoBalanceMensual(movimientos, meses: 2, titulo: "Este mes vs. el anterior");
+		}
+
+		// Pedido genérico de gráfico → gastos por categoría del mes
+		return GraficoGastosPorCategoria(movimientos);
+	}
+
+	private static AsistenteRespuestaDto SinDatos() => new()
+	{
+		Tipo = AsistenteRespuestaTipo.Card,
+		Respuesta = "Todavía no hay movimientos suficientes para generar ese gráfico. Registrá algunos ingresos o gastos y volvé a intentarlo. 📊"
+	};
+
+	private static AsistenteRespuestaDto GraficoGastosPorCategoria(IReadOnlyCollection<Core.Entities.Movimiento> movimientos)
+	{
+		var hoy = DateTime.Today;
+		var inicioMes = new DateTime(hoy.Year, hoy.Month, 1);
+		var egresos = movimientos.Where(m => m.Tipo == TipoMovimiento.Egreso && m.Fecha >= inicioMes).ToList();
+
+		if (egresos.Count == 0)
+		{
+			return SinDatos();
+		}
+
+		var porCategoria = egresos
+			.GroupBy(m => m.Categoria?.Nombre ?? "Sin categoría")
+			.Select(g => new { Categoria = g.Key, Total = g.Sum(m => m.Monto) })
+			.OrderByDescending(g => g.Total)
+			.ToList();
+
+		var total = porCategoria.Sum(c => c.Total);
+
+		return new AsistenteRespuestaDto
+		{
+			Tipo = AsistenteRespuestaTipo.Chart,
+			Respuesta = $"Acá tenés tus gastos por categoría de {inicioMes.ToString("MMMM yyyy", Cultura)}. El total es {total.ToString("C", Cultura)}.",
+			Grafico = new GraficoDto
+			{
+				Tipo = TipoGrafico.Torta,
+				Titulo = "Gastos por categoría",
+				Subtitulo = inicioMes.ToString("MMMM yyyy", Cultura),
+				Etiquetas = porCategoria.Select(c => c.Categoria).ToList(),
+				Valores = porCategoria.Select(c => c.Total).ToList(),
+				Total = total,
+				Periodo = inicioMes.ToString("MMMM yyyy", Cultura)
+			}
+		};
+	}
+
+	private static AsistenteRespuestaDto GraficoTopCategorias(IReadOnlyCollection<Core.Entities.Movimiento> movimientos, string texto)
+	{
+		var cantidad = 10;
+		var match = System.Text.RegularExpressions.Regex.Match(texto, @"top\s*(\d+)");
+		if (match.Success && int.TryParse(match.Groups[1].Value, out var n) && n > 0)
+		{
+			cantidad = n;
+		}
+
+		var egresos = movimientos.Where(m => m.Tipo == TipoMovimiento.Egreso).ToList();
+		if (egresos.Count == 0)
+		{
+			return SinDatos();
+		}
+
+		var top = egresos
+			.GroupBy(m => m.Categoria?.Nombre ?? "Sin categoría")
+			.Select(g => new { Categoria = g.Key, Total = g.Sum(m => m.Monto) })
+			.OrderByDescending(g => g.Total)
+			.Take(cantidad)
+			.ToList();
+
+		return new AsistenteRespuestaDto
+		{
+			Tipo = AsistenteRespuestaTipo.Chart,
+			Respuesta = $"Estas son tus {top.Count} categorías con mayor gasto histórico.",
+			Grafico = new GraficoDto
+			{
+				Tipo = TipoGrafico.Barras,
+				Titulo = $"Top {top.Count} categorías por gasto",
+				Subtitulo = "Histórico",
+				Etiquetas = top.Select(c => c.Categoria).ToList(),
+				Valores = top.Select(c => c.Total).ToList(),
+				Total = top.Sum(c => c.Total),
+				Periodo = "Histórico"
+			}
+		};
+	}
+
+	private static AsistenteRespuestaDto GraficoBalanceMensual(IReadOnlyCollection<Core.Entities.Movimiento> movimientos, int meses = 6, string? titulo = null)
+	{
+		var serie = SerieMensual(movimientos, meses);
+		if (serie.Count == 0)
+		{
+			return SinDatos();
+		}
+
+		var totalIngresos = serie.Sum(s => s.Ingresos);
+		var totalEgresos = serie.Sum(s => s.Egresos);
+
+		return new AsistenteRespuestaDto
+		{
+			Tipo = AsistenteRespuestaTipo.Chart,
+			Respuesta = $"Balance de los últimos {serie.Count} meses: ingresos {totalIngresos.ToString("C", Cultura)} vs egresos {totalEgresos.ToString("C", Cultura)}.",
+			Grafico = new GraficoDto
+			{
+				Tipo = TipoGrafico.Barras,
+				Titulo = titulo ?? "Balance mensual",
+				Subtitulo = "Ingresos vs egresos",
+				Etiquetas = serie.Select(s => s.Mes).ToList(),
+				Valores = serie.Select(s => s.Ingresos).ToList(),
+				ValoresSecundarios = serie.Select(s => s.Egresos).ToList(),
+				EtiquetaSerie = "Ingresos",
+				EtiquetaSerieSecundaria = "Egresos",
+				Total = totalIngresos - totalEgresos,
+				Periodo = $"Últimos {serie.Count} meses"
+			}
+		};
+	}
+
+	private static AsistenteRespuestaDto GraficoPresupuesto(IReadOnlyCollection<Core.Entities.Movimiento> movimientos)
+	{
+		var serie = SerieMensual(movimientos, 6);
+		if (serie.Count == 0 || serie.All(s => s.Egresos == 0))
+		{
+			return SinDatos();
+		}
+
+		var promedio = serie.Where(s => s.Egresos > 0).Average(s => s.Egresos);
+
+		return new AsistenteRespuestaDto
+		{
+			Tipo = AsistenteRespuestaTipo.Chart,
+			Respuesta = $"Gasto mensual de los últimos {serie.Count} meses. Tu promedio es {promedio.ToString("C", Cultura)}: usalo como referencia de presupuesto.",
+			Grafico = new GraficoDto
+			{
+				Tipo = TipoGrafico.Barras,
+				Titulo = "Gasto mensual vs presupuesto",
+				Subtitulo = $"Promedio: {promedio.ToString("C", Cultura)}",
+				Etiquetas = serie.Select(s => s.Mes).ToList(),
+				Valores = serie.Select(s => s.Egresos).ToList(),
+				EtiquetaSerie = "Egresos",
+				Total = serie.Sum(s => s.Egresos),
+				Periodo = $"Últimos {serie.Count} meses"
+			}
+		};
+	}
+
+	private static AsistenteRespuestaDto GraficoSerieMensual(IReadOnlyCollection<Core.Entities.Movimiento> movimientos, TipoMovimiento tipo, string titulo, TipoGrafico tipoGrafico)
+	{
+		var serie = SerieMensual(movimientos, 6);
+		var valores = serie.Select(s => tipo == TipoMovimiento.Ingreso ? s.Ingresos : s.Egresos).ToList();
+
+		if (serie.Count == 0 || valores.All(v => v == 0))
+		{
+			return SinDatos();
+		}
+
+		var total = valores.Sum();
+
+		return new AsistenteRespuestaDto
+		{
+			Tipo = AsistenteRespuestaTipo.Chart,
+			Respuesta = $"{titulo}: el total del período es {total.ToString("C", Cultura)}.",
+			Grafico = new GraficoDto
+			{
+				Tipo = tipoGrafico,
+				Titulo = titulo,
+				Subtitulo = $"Últimos {serie.Count} meses",
+				Etiquetas = serie.Select(s => s.Mes).ToList(),
+				Valores = valores,
+				EtiquetaSerie = tipo == TipoMovimiento.Ingreso ? "Ingresos" : "Egresos",
+				Total = total,
+				Periodo = $"Últimos {serie.Count} meses"
+			}
+		};
+	}
+
+	private static List<TotalMensualDto> SerieMensual(IReadOnlyCollection<Core.Entities.Movimiento> movimientos, int meses)
+	{
+		var hoy = DateTime.Today;
+		var inicio = new DateTime(hoy.Year, hoy.Month, 1).AddMonths(-(meses - 1));
+
+		return movimientos
+			.Where(m => m.Fecha >= inicio)
+			.GroupBy(m => new { m.Fecha.Year, m.Fecha.Month })
+			.OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+			.Select(g => new TotalMensualDto
+			{
+				Mes = new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yy", Cultura),
+				Ingresos = g.Where(m => m.Tipo == TipoMovimiento.Ingreso).Sum(m => m.Monto),
+				Egresos = g.Where(m => m.Tipo == TipoMovimiento.Egreso).Sum(m => m.Monto)
+			})
+			.ToList();
+	}
+
+	private static string QuitarAcentos(string texto)
+	{
+		var normalized = texto.Normalize(System.Text.NormalizationForm.FormD);
+		var sb = new System.Text.StringBuilder(normalized.Length);
+		foreach (var c in normalized)
+		{
+			if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+			{
+				sb.Append(c);
+			}
+		}
+		return sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
+	}
+
+	#endregion
 
 	private static ContextoFinancieroDto ConstruirContexto(IReadOnlyCollection<Core.Entities.Movimiento> movimientos)
 	{

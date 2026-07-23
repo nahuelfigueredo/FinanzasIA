@@ -56,6 +56,17 @@
                     else
                     {
                         <div class="asistente-texto asistente-markdown">@((MarkupString)RenderMarkdown(mensaje.Texto))</div>
+                        @if (mensaje.Grafico is not null)
+                        {
+                            @RenderGrafico(mensaje.Grafico)
+                        }
+                        @if (mensaje.EsCard)
+                        {
+                            <div class="asistente-card-sindatos">
+                                <span aria-hidden="true">📊</span>
+                                <span>Registrá más movimientos para ver este gráfico.</span>
+                            </div>
+                        }
                         @if (!string.IsNullOrEmpty(mensaje.Badge))
                         {
                             <span class="asistente-badge">@mensaje.Badge</span>
@@ -294,13 +305,21 @@
 
             var respuesta = await ApiClient.PreguntarAsistenteAsync(texto, historial);
 
-            // Efecto de escritura palabra por palabra.
-            await MostrarConTypewriterAsync(respuesta.Respuesta);
+            var esGrafico = respuesta.Tipo == AsistenteRespuestaTipo.Chart && respuesta.Grafico is not null;
+            var esCard = respuesta.Tipo == AsistenteRespuestaTipo.Card;
+
+            if (!esGrafico && !esCard)
+            {
+                // Efecto de escritura palabra por palabra.
+                await MostrarConTypewriterAsync(respuesta.Respuesta);
+            }
 
             _mensajes.Add(new ChatMensaje(respuesta.Respuesta, false, DateTime.Now)
             {
                 Badge = respuesta.AccionEjecutada ? "⚡ Acción ejecutada" : null,
-                MostrarAcciones = !respuesta.AccionEjecutada
+                MostrarAcciones = !respuesta.AccionEjecutada && !esGrafico && !esCard,
+                Grafico = esGrafico ? respuesta.Grafico : null,
+                EsCard = esCard
             });
             _textoStreaming = string.Empty;
 
@@ -404,7 +423,139 @@
     {
         public string? Badge { get; init; }
         public bool MostrarAcciones { get; init; }
+        public GraficoDto? Grafico { get; init; }
+        public bool EsCard { get; init; }
     }
+
+    private static readonly string[] ChartColors =
+    [
+        "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
+        "#a855f7", "#ec4899", "#84cc16", "#f97316", "#14b8a6"
+    ];
+
+    private static string ColorDe(GraficoDto g, int i) =>
+        g.Colores is { Count: > 0 } c ? c[i % c.Count] : ChartColors[i % ChartColors.Length];
+
+    private static string DonutGradient(GraficoDto g)
+    {
+        var total = g.Valores.Sum();
+        if (total <= 0) { return "var(--bs-secondary-bg, #e9ecef)"; }
+
+        var partes = new List<string>();
+        decimal acumulado = 0;
+        for (var i = 0; i < g.Valores.Count; i++)
+        {
+            var desde = acumulado / total * 360m;
+            acumulado += g.Valores[i];
+            var hasta = acumulado / total * 360m;
+            partes.Add($"{ColorDe(g, i)} {desde.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}deg {hasta.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}deg");
+        }
+        return $"conic-gradient({string.Join(", ", partes)})";
+    }
+
+    private static decimal PorcentajeBarra(decimal valor, decimal max) =>
+        max <= 0 ? 0 : Math.Round(valor / max * 100, 1);
+
+    private static string PuntosLinea(IReadOnlyList<decimal> valores, decimal max)
+    {
+        if (valores.Count == 0) { return string.Empty; }
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var puntos = new List<string>();
+        for (var i = 0; i < valores.Count; i++)
+        {
+            var x = valores.Count == 1 ? 50m : (decimal)i / (valores.Count - 1) * 100m;
+            var y = max <= 0 ? 90m : 90m - (valores[i] / max * 80m);
+            puntos.Add($"{x.ToString("0.##", inv)},{y.ToString("0.##", inv)}");
+        }
+        return string.Join(" ", puntos);
+    }
+
+    private RenderFragment RenderGrafico(GraficoDto g) => __builder =>
+    {
+        var cultura = new System.Globalization.CultureInfo("es-AR");
+        <div class="asistente-grafico">
+            <div class="asistente-grafico-header">
+                <strong>@g.Titulo</strong>
+                @if (!string.IsNullOrEmpty(g.Subtitulo))
+                {
+                    <span class="asistente-grafico-sub">@g.Subtitulo</span>
+                }
+            </div>
+
+            @if (g.Tipo == TipoGrafico.Torta)
+            {
+                var total = g.Valores.Sum();
+                <div class="asistente-grafico-donut">
+                    <div class="donut-chart" style="background:@DonutGradient(g)"><span class="donut-hole"></span></div>
+                    <div class="asistente-grafico-leyenda">
+                        @for (var i = 0; i < g.Etiquetas.Count; i++)
+                        {
+                            var idx = i;
+                            <div class="asistente-grafico-leyenda-item">
+                                <span class="donut-dot" style="background:@ColorDe(g, idx)"></span>
+                                <span>@g.Etiquetas[idx]</span>
+                                <strong>@g.Valores[idx].ToString("C0", cultura)</strong>
+                                @if (total > 0)
+                                {
+                                    <span class="asistente-grafico-pct">@Math.Round(g.Valores[idx] / total * 100, 0)%</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (g.Tipo == TipoGrafico.Barras)
+            {
+                var max = g.Valores.Concat(g.ValoresSecundarios ?? []).DefaultIfEmpty(0).Max();
+                <div class="asistente-grafico-barras">
+                    @for (var i = 0; i < g.Etiquetas.Count; i++)
+                    {
+                        var idx = i;
+                        <div class="asistente-grafico-fila">
+                            <div class="chart-label">
+                                <span>@g.Etiquetas[idx]</span>
+                                <strong>@g.Valores[idx].ToString("C0", cultura)</strong>
+                            </div>
+                            <div class="chart-track">
+                                <div class="chart-bar income" style="width:@PorcentajeBarra(g.Valores[idx], max)%"></div>
+                            </div>
+                            @if (g.ValoresSecundarios is not null && idx < g.ValoresSecundarios.Count)
+                            {
+                                <div class="chart-label">
+                                    <span class="text-muted">@(g.EtiquetaSerieSecundaria ?? "Serie 2")</span>
+                                    <strong>@g.ValoresSecundarios[idx].ToString("C0", cultura)</strong>
+                                </div>
+                                <div class="chart-track">
+                                    <div class="chart-bar expense" style="width:@PorcentajeBarra(g.ValoresSecundarios[idx], max)%"></div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else if (g.Tipo == TipoGrafico.Lineas)
+            {
+                var max = g.Valores.DefaultIfEmpty(0).Max();
+                <div class="asistente-grafico-lineas">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="@g.Titulo">
+                        <polyline fill="none" stroke="#6366f1" stroke-width="2" vector-effect="non-scaling-stroke"
+                                  points="@PuntosLinea(g.Valores, max)" />
+                    </svg>
+                    <div class="asistente-grafico-ejes">
+                        @foreach (var etiqueta in g.Etiquetas)
+                        {
+                            <span>@etiqueta</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="asistente-grafico-footer">
+                <span>@g.Periodo</span>
+                <strong>Total: @g.Total.ToString("C0", cultura)</strong>
+            </div>
+        </div>
+    };
 
     private sealed class ConversacionResumen
     {

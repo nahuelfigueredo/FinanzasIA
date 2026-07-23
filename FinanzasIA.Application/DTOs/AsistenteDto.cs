@@ -20,6 +20,45 @@ public class AsistenteMensajeDto
 	public string Texto { get; set; } = string.Empty;
 }
 
+/// <summary>Tipo de contenido devuelto por el asistente.</summary>
+public enum AsistenteRespuestaTipo
+{
+	Text = 0,
+	Chart = 1,
+	Table = 2,
+	Card = 3
+}
+
+/// <summary>Tipo de visualización del gráfico.</summary>
+public enum TipoGrafico
+{
+	Barras = 0,
+	Torta = 1,
+	Lineas = 2
+}
+
+/// <summary>
+/// Payload estructurado para renderizar un gráfico dentro del chat.
+/// </summary>
+public class GraficoDto
+{
+	public TipoGrafico Tipo { get; set; }
+	public string Titulo { get; set; } = string.Empty;
+	public string? Subtitulo { get; set; }
+	public List<string> Etiquetas { get; set; } = [];
+	public List<decimal> Valores { get; set; } = [];
+
+	/// <summary>Serie secundaria opcional (ej. egresos en comparativa ingresos vs egresos).</summary>
+	public List<decimal>? ValoresSecundarios { get; set; }
+	public string? EtiquetaSerie { get; set; }
+	public string? EtiquetaSerieSecundaria { get; set; }
+
+	/// <summary>Colores en formato CSS (opcional, el frontend usa su paleta por defecto).</summary>
+	public List<string>? Colores { get; set; }
+	public decimal Total { get; set; }
+	public string Periodo { get; set; } = string.Empty;
+}
+
 /// <summary>
 /// Respuesta generada por el asistente financiero.
 /// </summary>
@@ -30,6 +69,12 @@ public class AsistenteRespuestaDto
 
 	/// <summary>Indica si la respuesta incluyó la ejecución de una acción (ej. registrar un gasto).</summary>
 	public bool AccionEjecutada { get; set; }
+
+	/// <summary>Tipo de contenido de la respuesta (texto, gráfico, tabla o tarjeta).</summary>
+	public AsistenteRespuestaTipo Tipo { get; set; } = AsistenteRespuestaTipo.Text;
+
+	/// <summary>Datos del gráfico cuando <see cref="Tipo"/> es Chart.</summary>
+	public GraficoDto? Grafico { get; set; }
 }
 
 /// <summary>

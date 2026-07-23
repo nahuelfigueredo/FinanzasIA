@@ -494,6 +494,118 @@ html[data-theme="dark"] .notification-message {
     animation: asistente-blink 0.9s steps(2, start) infinite;
 }
 
+/* ===== Gráficos dentro del chat del asistente ===== */
+.asistente-grafico {
+    margin-top: 0.6rem;
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    max-width: 100%;
+}
+
+.asistente-grafico-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin-bottom: 0.6rem;
+}
+
+.asistente-grafico-sub {
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color, #6c757d);
+    text-transform: capitalize;
+}
+
+.asistente-grafico-donut {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.asistente-grafico-donut .donut-chart {
+    width: 110px;
+    height: 110px;
+    flex: none;
+}
+
+.asistente-grafico-leyenda {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    min-width: 0;
+}
+
+.asistente-grafico-leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.asistente-grafico-pct {
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: 0.78rem;
+}
+
+.asistente-grafico-barras {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.asistente-grafico-fila .chart-label {
+    font-size: 0.82rem;
+}
+
+.asistente-grafico-lineas svg {
+    width: 100%;
+    height: 120px;
+    display: block;
+}
+
+.asistente-grafico-ejes {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--bs-secondary-color, #6c757d);
+    margin-top: 0.25rem;
+    text-transform: capitalize;
+}
+
+.asistente-grafico-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.7rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed rgba(0, 0, 0, 0.12);
+    font-size: 0.83rem;
+}
+
+.asistente-card-sindatos {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.6rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px dashed rgba(99, 102, 241, 0.35);
+    font-size: 0.85rem;
+}
+
+html[data-theme="dark"] .asistente-grafico {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="dark"] .asistente-grafico-footer {
+    border-top-color: rgba(255, 255, 255, 0.18);
+}
+
 @keyframes asistente-blink {
     to {
         visibility: hidden;
