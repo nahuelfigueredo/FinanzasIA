@@ -42,14 +42,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
-builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
-builder.Services.Configure<OcrOptions>(builder.Configuration.GetSection(OcrOptions.SectionName));
-builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
-builder.Services.AddHttpClient<FinanzasIA.Application.Interfaces.ITicketOcrProvider, OcrSpaceProvider>();
-builder.Services.AddScoped<IUsuarioWhatsAppResolver, UsuarioWhatsAppResolver>();
-builder.Services.AddScoped<FinanzasIA.Application.Interfaces.ICanalMensajeriaSender, WhatsAppSenderAdapter>();
-builder.Services.AddSingleton<WhatsAppDiagnosticsStore>();
-builder.Services.AddScoped<WhatsAppMessageHandler>();
+
+// Registro único compartido con FinanzasIA.Api: garantiza que ambos hosts
+// expongan exactamente los mismos servicios para los controllers compartidos.
+builder.Services.AddFinanzasIAApiServices(builder.Configuration, builder.Environment);
 builder.Services.AddScoped<FinanzasIA.Backoffice.Services.ThemeService>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
