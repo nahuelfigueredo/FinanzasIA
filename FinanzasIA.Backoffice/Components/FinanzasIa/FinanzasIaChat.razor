@@ -1,0 +1,429 @@
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="asistente-layout">
+
+    <aside class="asistente-historial card">
+        <div class="asistente-historial-header">
+            <button type="button" class="btn btn-primary btn-sm w-100" @onclick="NuevaConversacionAsync">➕ Nueva conversación</button>
+            <input class="form-control form-control-sm mt-2" placeholder="🔍 Buscar..." @bind="_busqueda" @bind:event="oninput" />
+        </div>
+        <div class="asistente-historial-lista">
+            @foreach (var conv in ConversacionesFiltradas)
+            {
+                <div class="asistente-historial-item @(conv.Id == _conversacionId ? "activa" : "")">
+                    @if (_renombrandoId == conv.Id)
+                    {
+                        <input class="form-control form-control-sm" @bind="_nuevoTitulo"
+                               @onkeydown="@(e => OnRenombrarKeyAsync(e, conv.Id))" @onblur="() => ConfirmarRenombrarAsync(conv.Id)" />
+                    }
+                    else
+                    {
+                        <button type="button" class="asistente-historial-titulo" @onclick="() => AbrirConversacionAsync(conv.Id)" title="@conv.Titulo">
+                            💬 @conv.Titulo
+                        </button>
+                        <div class="asistente-historial-acciones">
+                            <button type="button" class="asistente-icono-btn" title="Renombrar" @onclick="() => IniciarRenombrar(conv)">✏</button>
+                            <button type="button" class="asistente-icono-btn" title="Eliminar" @onclick="() => EliminarConversacionAsync(conv.Id)">🗑</button>
+                        </div>
+                    }
+                </div>
+            }
+            @if (_conversaciones.Count == 0)
+            {
+                <p class="text-muted small p-2 mb-0">Todavía no tenés conversaciones guardadas.</p>
+            }
+        </div>
+    </aside>
+
+    <div class="asistente-chat card">
+        <div class="asistente-mensajes" id="asistente-scroll">
+            @if (_mensajes.Count == 0)
+            {
+                <div class="asistente-vacio">
+                    <span class="asistente-vacio-icono" aria-hidden="true">🤖</span>
+                    <p>¡Hola! Soy tu asesor financiero con IA. Preguntame lo que quieras sobre tus finanzas o pedime acciones como <em>"Registrá un gasto de $15.000 en nafta"</em>.</p>
+                </div>
+            }
+            @foreach (var mensaje in _mensajes)
+            {
+                <div class="asistente-burbuja @(mensaje.EsUsuario ? "usuario" : "bot")">
+                    @if (mensaje.EsUsuario)
+                    {
+                        <div class="asistente-texto">@mensaje.Texto</div>
+                    }
+                    else
+                    {
+                        <div class="asistente-texto asistente-markdown">@((MarkupString)RenderMarkdown(mensaje.Texto))</div>
+                        @if (!string.IsNullOrEmpty(mensaje.Badge))
+                        {
+                            <span class="asistente-badge">@mensaje.Badge</span>
+                        }
+                        @if (mensaje.MostrarAcciones)
+                        {
+                            <div class="asistente-acciones">
+                                <button type="button" class="asistente-chip" @onclick="@(() => Navigation.NavigateTo("/reportes"))">📈 Ver gráficos</button>
+                                <button type="button" class="asistente-chip" @onclick="@(() => Navigation.NavigateTo("/movimientos"))">📄 Ver movimientos</button>
+                                <button type="button" class="asistente-chip" disabled="@_isThinking" @onclick="@(() => EnviarAsync("Comparar este mes con el anterior"))">📊 Comparar meses</button>
+                                <button type="button" class="asistente-chip" disabled="@_isThinking" @onclick="@(() => EnviarAsync("¿Cómo puedo ahorrar?"))">💡 Recomendaciones</button>
+                            </div>
+                        }
+                    }
+                    <div class="asistente-hora">@mensaje.Hora.ToString("HH:mm")</div>
+                </div>
+            }
+            @if (_isThinking && string.IsNullOrEmpty(_textoStreaming))
+            {
+                <div class="asistente-burbuja bot">
+                    <div class="asistente-texto text-muted">Pensando<span class="asistente-puntos">...</span></div>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_textoStreaming))
+            {
+                <div class="asistente-burbuja bot">
+                    <div class="asistente-texto asistente-markdown">@((MarkupString)RenderMarkdown(_textoStreaming))<span class="asistente-cursor">▍</span></div>
+                </div>
+            }
+        </div>
+
+        <div class="asistente-rapidas">
+            @foreach (var rapida in _preguntasRapidas)
+            {
+                <button type="button" class="asistente-chip" disabled="@_isThinking" @onclick="() => EnviarAsync(rapida)">@rapida</button>
+            }
+        </div>
+
+        <div class="asistente-input">
+            <input class="form-control" placeholder="Escribí tu pregunta o una acción..." @bind="_pregunta" @bind:event="oninput"
+                   @onkeydown="OnKeyDown" disabled="@_isThinking" />
+            <button type="button" class="btn btn-primary" disabled="@(_isThinking || string.IsNullOrWhiteSpace(_pregunta))" @onclick="() => EnviarAsync(_pregunta)">
+                Enviar
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly List<ChatMensaje> _mensajes = [];
+    private string _pregunta = string.Empty;
+    private bool _isThinking;
+    private string _textoStreaming = string.Empty;
+
+    private readonly List<ConversacionResumen> _conversaciones = [];
+    private string _conversacionId = Guid.NewGuid().ToString("N");
+    private string _busqueda = string.Empty;
+    private string? _renombrandoId;
+    private string _nuevoTitulo = string.Empty;
+
+    private IEnumerable<ConversacionResumen> ConversacionesFiltradas =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _conversaciones
+            : _conversaciones.Where(c => c.Titulo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    private readonly string[] _preguntasRapidas =
+    [
+        "¿Cómo voy este mes?",
+        "¿En qué estoy gastando demasiado?",
+        "Comparar este mes con el anterior",
+        "¿Cómo puedo ahorrar?",
+        "Resumen del mes"
+    ];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await CargarConversacionesAsync();
+        StateHasChanged();
+    }
+
+    private async Task CargarConversacionesAsync()
+    {
+        try
+        {
+            var lista = await JSRuntime.InvokeAsync<List<ConversacionResumen>>("finanzasAsistente.listar");
+            _conversaciones.Clear();
+            _conversaciones.AddRange(lista);
+        }
+        catch
+        {
+            // el historial es opcional; el chat sigue funcionando
+        }
+    }
+
+    private async Task NuevaConversacionAsync()
+    {
+        _conversacionId = Guid.NewGuid().ToString("N");
+        _mensajes.Clear();
+        _textoStreaming = string.Empty;
+        await CargarConversacionesAsync();
+    }
+
+    private async Task AbrirConversacionAsync(string id)
+    {
+        try
+        {
+            var conv = await JSRuntime.InvokeAsync<ConversacionCompleta?>("finanzasAsistente.obtener", id);
+            if (conv is null)
+            {
+                return;
+            }
+
+            _conversacionId = conv.Id;
+            _mensajes.Clear();
+            _mensajes.AddRange(conv.Mensajes.Select(m => new ChatMensaje(m.Texto, m.EsUsuario, DateTime.Now)));
+            await ScrollAlFinalAsync();
+        }
+        catch
+        {
+            // conversar sigue siendo posible aunque falle el historial
+        }
+    }
+
+    private void IniciarRenombrar(ConversacionResumen conv)
+    {
+        _renombrandoId = conv.Id;
+        _nuevoTitulo = conv.Titulo;
+    }
+
+    private async Task OnRenombrarKeyAsync(KeyboardEventArgs e, string id)
+    {
+        if (e.Key == "Enter")
+        {
+            await ConfirmarRenombrarAsync(id);
+        }
+    }
+
+    private async Task ConfirmarRenombrarAsync(string id)
+    {
+        if (_renombrandoId != id)
+        {
+            return;
+        }
+
+        _renombrandoId = null;
+        if (!string.IsNullOrWhiteSpace(_nuevoTitulo))
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("finanzasAsistente.renombrar", id, _nuevoTitulo.Trim());
+            }
+            catch { }
+            await CargarConversacionesAsync();
+        }
+    }
+
+    private async Task EliminarConversacionAsync(string id)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("finanzasAsistente.eliminar", id);
+        }
+        catch { }
+
+        if (id == _conversacionId)
+        {
+            await NuevaConversacionAsync();
+        }
+        else
+        {
+            await CargarConversacionesAsync();
+        }
+    }
+
+    private async Task GuardarConversacionAsync()
+    {
+        if (_mensajes.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var primerMensaje = _mensajes.FirstOrDefault(m => m.EsUsuario)?.Texto ?? "Conversación";
+            var titulo = _conversaciones.FirstOrDefault(c => c.Id == _conversacionId)?.Titulo
+                ?? (primerMensaje.Length > 40 ? primerMensaje[..40] + "…" : primerMensaje);
+
+            await JSRuntime.InvokeVoidAsync("finanzasAsistente.guardar", new
+            {
+                id = _conversacionId,
+                titulo,
+                fecha = DateTime.Now.ToString("o"),
+                mensajes = _mensajes.Select(m => new { esUsuario = m.EsUsuario, texto = m.Texto }).ToList()
+            });
+            await CargarConversacionesAsync();
+        }
+        catch
+        {
+            // persistencia opcional
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_pregunta) && !_isThinking)
+        {
+            await EnviarAsync(_pregunta);
+        }
+    }
+
+    private async Task EnviarAsync(string pregunta)
+    {
+        if (string.IsNullOrWhiteSpace(pregunta) || _isThinking)
+        {
+            return;
+        }
+
+        var texto = pregunta.Trim();
+        _pregunta = string.Empty;
+        _mensajes.Add(new ChatMensaje(texto, true, DateTime.Now));
+        _isThinking = true;
+        _textoStreaming = string.Empty;
+        await ScrollAlFinalAsync();
+
+        try
+        {
+            var historial = _mensajes
+                .SkipLast(1)
+                .Select(m => new AsistenteMensajeDto { EsUsuario = m.EsUsuario, Texto = m.Texto })
+                .ToList();
+
+            var respuesta = await ApiClient.PreguntarAsistenteAsync(texto, historial);
+
+            // Efecto de escritura palabra por palabra.
+            await MostrarConTypewriterAsync(respuesta.Respuesta);
+
+            _mensajes.Add(new ChatMensaje(respuesta.Respuesta, false, DateTime.Now)
+            {
+                Badge = respuesta.AccionEjecutada ? "⚡ Acción ejecutada" : null,
+                MostrarAcciones = !respuesta.AccionEjecutada
+            });
+            _textoStreaming = string.Empty;
+
+            await GuardarConversacionAsync();
+        }
+        catch (Exception)
+        {
+            _textoStreaming = string.Empty;
+            _mensajes.Add(new ChatMensaje("Ups, no pude responder en este momento. Verificá tu conexión e intentá de nuevo. 🙏", false, DateTime.Now));
+        }
+        finally
+        {
+            _isThinking = false;
+            await ScrollAlFinalAsync();
+        }
+    }
+
+    private async Task MostrarConTypewriterAsync(string textoCompleto)
+    {
+        var palabras = textoCompleto.Split(' ');
+        var acumulado = new System.Text.StringBuilder();
+        var contador = 0;
+
+        foreach (var palabra in palabras)
+        {
+            if (acumulado.Length > 0)
+            {
+                acumulado.Append(' ');
+            }
+            acumulado.Append(palabra);
+            contador++;
+
+            // Actualizar de a 3 palabras para no saturar el render.
+            if (contador % 3 == 0)
+            {
+                _textoStreaming = acumulado.ToString();
+                StateHasChanged();
+                await Task.Delay(45);
+            }
+        }
+
+        _textoStreaming = acumulado.ToString();
+        StateHasChanged();
+        await ScrollAlFinalAsync();
+    }
+
+    /// <summary>Convierte el subconjunto de markdown que genera la IA a HTML seguro.</summary>
+    private static string RenderMarkdown(string texto)
+    {
+        var html = System.Net.WebUtility.HtmlEncode(texto);
+
+        // Negritas **texto**
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        // Cursivas *texto*
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"(?<!\*)\*(?!\*)([^*\n]+)\*(?!\*)", "<em>$1</em>");
+
+        var lineas = html.Replace("\r\n", "\n").Split('\n');
+        var sb = new System.Text.StringBuilder();
+        var enLista = false;
+
+        foreach (var linea in lineas)
+        {
+            var l = linea.Trim();
+
+            if (l.StartsWith("- ") || l.StartsWith("• "))
+            {
+                if (!enLista) { sb.Append("<ul>"); enLista = true; }
+                sb.Append("<li>").Append(l[2..]).Append("</li>");
+                continue;
+            }
+
+            if (enLista) { sb.Append("</ul>"); enLista = false; }
+
+            if (l.StartsWith("### ")) { sb.Append("<h5>").Append(l[4..]).Append("</h5>"); }
+            else if (l.StartsWith("## ")) { sb.Append("<h4>").Append(l[3..]).Append("</h4>"); }
+            else if (l.StartsWith("# ")) { sb.Append("<h4>").Append(l[2..]).Append("</h4>"); }
+            else if (l == "---") { sb.Append("<hr />"); }
+            else if (l.Length == 0) { sb.Append("<br />"); }
+            else { sb.Append("<p>").Append(l).Append("</p>"); }
+        }
+
+        if (enLista) { sb.Append("</ul>"); }
+
+        return sb.ToString();
+    }
+
+    private async Task ScrollAlFinalAsync()
+    {
+        StateHasChanged();
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "const el = document.getElementById('asistente-scroll'); if (el) { el.scrollTop = el.scrollHeight; }");
+        }
+        catch
+        {
+            // el scroll es cosmético; no debe romper el chat
+        }
+    }
+
+    private sealed record ChatMensaje(string Texto, bool EsUsuario, DateTime Hora)
+    {
+        public string? Badge { get; init; }
+        public bool MostrarAcciones { get; init; }
+    }
+
+    private sealed class ConversacionResumen
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
+        public string? Fecha { get; set; }
+        public int CantidadMensajes { get; set; }
+    }
+
+    private sealed class ConversacionCompleta
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Titulo { get; set; } = string.Empty;
+        public List<MensajeGuardado> Mensajes { get; set; } = [];
+    }
+
+    private sealed class MensajeGuardado
+    {
+        public bool EsUsuario { get; set; }
+        public string Texto { get; set; } = string.Empty;
+    }
+}

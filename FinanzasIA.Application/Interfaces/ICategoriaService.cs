@@ -9,4 +9,10 @@ public interface ICategoriaService
     Task<CategoriaDto> CreateAsync(CreateCategoriaDto dto, string? usuarioId = null, CancellationToken cancellationToken = default);
     Task<CategoriaDto?> UpdateAsync(int id, UpdateCategoriaDto dto, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>Crea las categorías predeterminadas del sistema para un usuario recién registrado (idempotente).</summary>
+    Task CrearCategoriasPredeterminadasAsync(string usuarioId, CancellationToken cancellationToken = default);
+
+    /// <summary>Activa o desactiva una categoría.</summary>
+    Task<bool> CambiarEstadoAsync(int id, bool activa, CancellationToken cancellationToken = default);
 }

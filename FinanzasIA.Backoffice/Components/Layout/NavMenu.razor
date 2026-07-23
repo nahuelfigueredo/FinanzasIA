@@ -28,38 +28,8 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="categorias">
-                <span class="bi bi-tags-fill-nav-menu" aria-hidden="true"></span> Categorías
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="cuentas">
-                <span class="bi bi-cash-stack-nav-menu" aria-hidden="true"></span> Cuentas
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="analisis-ia">
-                <span class="bi bi-graph-up-arrow-nav-menu" aria-hidden="true"></span> Inteligencia financiera
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="asistente">
-                <span class="bi bi-chat-dots-nav-menu" aria-hidden="true"></span> Asistente Financiero
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="centro-mensajes">
-                <span class="bi bi-chat-dots-nav-menu" aria-hidden="true"></span> Centro de Mensajes
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
             <NavLink class="nav-link" href="presupuesto">
-                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuestos
+                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuesto
             </NavLink>
         </div>
 
@@ -82,9 +52,22 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="configuracion">
-                <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Configuración
+            <NavLink class="nav-link" href="finanzas-ia">
+                <span class="bi bi-chat-dots-nav-menu" aria-hidden="true"></span> Finanzas IA
             </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <details class="nav-submenu" onclick="event.stopPropagation()">
+                <summary class="nav-link">
+                    <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Configuración
+                </summary>
+                <div class="nav-submenu-items">
+                    <NavLink class="nav-link nav-sublink" href="configuracion">Preferencias</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="categorias">Categorías</NavLink>
+                    <NavLink class="nav-link nav-sublink" href="cuentas">Cuentas</NavLink>
+                </div>
+            </details>
         </div>
     </nav>
 </div>

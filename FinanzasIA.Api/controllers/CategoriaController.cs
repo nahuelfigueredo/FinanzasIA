@@ -58,4 +58,11 @@ public class CategoriaController : ControllerBase
             return Conflict(new { message = ex.Message });
         }
     }
+
+    [HttpPut("{id:int}/estado")]
+    public async Task<IActionResult> CambiarEstado(int id, [FromQuery] bool activa, CancellationToken cancellationToken)
+    {
+        var ok = await _categoriaService.CambiarEstadoAsync(id, activa, cancellationToken);
+        return ok ? NoContent() : NotFound();
+    }
 }

@@ -69,6 +69,28 @@ public class FinanzasApiClient
         }
     }
 
+    public async Task CambiarEstadoCategoriaAsync(int id, bool activa, CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var response = await _httpClient.PutAsync($"api/categoria/{id}/estado?activa={activa}", null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<AutomatizacionesDto> GetAutomatizacionesAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var configuracion = await _httpClient.GetFromJsonAsync<AutomatizacionesDto>("api/automatizaciones", cancellationToken);
+        return configuracion ?? new AutomatizacionesDto();
+    }
+
+    public async Task<AutomatizacionesDto> GuardarAutomatizacionesAsync(AutomatizacionesDto dto, CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var response = await _httpClient.PutAsJsonAsync("api/automatizaciones", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<AutomatizacionesDto>(cancellationToken))!;
+    }
+
     private sealed class ErrorResponse
     {
         public string? Message { get; set; }

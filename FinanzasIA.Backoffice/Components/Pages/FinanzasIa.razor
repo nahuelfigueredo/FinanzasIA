@@ -1,0 +1,56 @@
+@page "/finanzas-ia"
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<PageTitle>Finanzas IA</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🤖</span>
+    <div>
+        <h1>Finanzas IA</h1>
+        <p>Tu centro de inteligencia financiera: chat, actividad, análisis y automatizaciones.</p>
+    </div>
+</div>
+
+<div class="fia-tabs" role="tablist">
+    <button type="button" role="tab" class="fia-tab @(TabActiva == "chat" ? "activa" : "")" @onclick="@(() => CambiarTab("chat"))">💬 Chat</button>
+    <button type="button" role="tab" class="fia-tab @(TabActiva == "actividad" ? "activa" : "")" @onclick="@(() => CambiarTab("actividad"))">📋 Actividad</button>
+    <button type="button" role="tab" class="fia-tab @(TabActiva == "analisis" ? "activa" : "")" @onclick="@(() => CambiarTab("analisis"))">📊 Análisis</button>
+    <button type="button" role="tab" class="fia-tab @(TabActiva == "automatizaciones" ? "activa" : "")" @onclick="@(() => CambiarTab("automatizaciones"))">⚙ Automatizaciones</button>
+</div>
+
+<div class="fia-tab-contenido">
+    @switch (TabActiva)
+    {
+        case "actividad":
+            <FinanzasIaActividad />
+            break;
+        case "analisis":
+            <FinanzasIaAnalisis />
+            break;
+        case "automatizaciones":
+            <FinanzasIaAutomatizaciones />
+            break;
+        default:
+            <FinanzasIaChat />
+            break;
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? Tab { get; set; }
+
+    private string TabActiva => (Tab?.ToLowerInvariant()) switch
+    {
+        "actividad" => "actividad",
+        "analisis" => "analisis",
+        "automatizaciones" => "automatizaciones",
+        _ => "chat"
+    };
+
+    private void CambiarTab(string tab)
+    {
+        Navigation.NavigateTo($"/finanzas-ia?tab={tab}");
+    }
+}

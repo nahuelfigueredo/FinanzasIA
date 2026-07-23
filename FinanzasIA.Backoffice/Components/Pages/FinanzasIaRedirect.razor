@@ -1,0 +1,19 @@
+@page "/asistente"
+@page "/analisis-ia"
+@page "/centro-mensajes"
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        var ruta = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        var tab = ruta switch
+        {
+            "/analisis-ia" => "analisis",
+            "/centro-mensajes" => "actividad",
+            _ => "chat"
+        };
+
+        Navigation.NavigateTo($"/finanzas-ia?tab={tab}", replace: true);
+    }
+}

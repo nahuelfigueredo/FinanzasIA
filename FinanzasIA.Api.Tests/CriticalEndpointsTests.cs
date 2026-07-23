@@ -11,7 +11,15 @@ public class CriticalEndpointsTests
     [Fact]
     public async Task MovimientoCreate_RetornaBadRequest_CuandoCategoriaNoExiste()
     {
-        var controller = new MovimientoController(new FakeMovimientoService { CreateResult = null });
+        var controller = new MovimientoController(new FakeMovimientoService { CreateResult = null })
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+            }
+        };
+        controller.HttpContext.Request.Headers["X-User-Id"] = "user-test";
+
         var result = await controller.Create(new CreateMovimientoDto(), CancellationToken.None);
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
@@ -71,6 +79,12 @@ public class CriticalEndpointsTests
             => Task.FromResult<CategoriaDto?>(null);
 
         public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+            => Task.FromResult(false);
+
+        public Task CrearCategoriasPredeterminadasAsync(string usuarioId, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<bool> CambiarEstadoAsync(int id, bool activa, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
     }
 

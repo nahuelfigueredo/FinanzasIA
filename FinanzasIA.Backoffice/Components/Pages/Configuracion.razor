@@ -158,6 +158,60 @@ else
             </div>
         }
     </div>
+
+    <div class="dashboard-panel mt-4">
+        <h4 class="mb-1"><span class="section-icon" aria-hidden="true">🔌</span> Integraciones</h4>
+        <p class="text-muted small mb-3">Servicios externos conectados a Finanzas IA.</p>
+
+        <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>💬 WhatsApp</strong>
+                            <span class="badge @(_numeros.Count > 0 ? "bg-success" : "bg-secondary")">
+                                @(_numeros.Count > 0 ? "Conectado" : "Sin vincular")
+                            </span>
+                        </div>
+                        <p class="text-muted small mb-0">Registrá movimientos y consultá tus finanzas por mensaje. Administrá tus números en la sección de arriba.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>🤖 OpenAI</strong>
+                            <span class="badge bg-success">Activo</span>
+                        </div>
+                        <p class="text-muted small mb-0">Motor de IA del chat, análisis y clasificación automática. Se configura en el servidor.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>📧 Email</strong>
+                            <span class="badge bg-secondary">Próximamente</span>
+                        </div>
+                        <p class="text-muted small mb-0">Resúmenes y alertas por correo electrónico.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <strong>✨ Más integraciones</strong>
+                            <span class="badge bg-secondary">Próximamente</span>
+                        </div>
+                        <p class="text-muted small mb-0">Bancos, billeteras virtuales y otros servicios se sumarán en el futuro.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 @code {

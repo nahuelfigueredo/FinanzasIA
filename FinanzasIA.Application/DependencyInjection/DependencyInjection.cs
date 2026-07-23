@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IAsistenteService, AsistenteService>();
         services.AddScoped<IFinanzasAnalyzer, FinanzasAnalyzer>();
         services.AddScoped<ISugerenciasService, SugerenciasService>();
+        services.AddScoped<IAutomatizacionesService, AutomatizacionesService>();
 
         // Motor genérico de procesamiento de mensajes.
         // Para pasar a OpenAI: reemplazar RuleBasedMessageInterpreter por OpenAIMessageInterpreter.

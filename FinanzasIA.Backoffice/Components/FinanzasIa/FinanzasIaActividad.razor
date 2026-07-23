@@ -1,0 +1,141 @@
+@inject FinanzasApiClient ApiClient
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-3">
+                <label class="form-label">Estado</label>
+                <select class="form-select" @bind="_filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="ok">Exitosos</option>
+                    <option value="error">Con error</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Tipo</label>
+                <select class="form-select" @bind="_filtroOrigen">
+                    <option value="">Todos</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Asistente">IA / Asistente</option>
+                    <option value="Api">API / Automatizaciones</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Desde</label>
+                <InputDate class="form-control" @bind-Value="_filtroDesde" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label">Hasta</label>
+                <InputDate class="form-control" @bind-Value="_filtroHasta" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_cargando)
+{
+    <p class="text-muted">Cargando actividad...</p>
+}
+else if (!MensajesFiltrados.Any())
+{
+    <p class="text-muted">No hay eventos para los filtros seleccionados.</p>
+}
+else
+{
+    <div class="actividad-timeline">
+        @foreach (var m in MensajesFiltrados)
+        {
+            <div class="actividad-evento @(m.Exito ? "" : "actividad-evento-error")">
+                <div class="actividad-icono" aria-hidden="true">@GetIcono(m)</div>
+                <div class="actividad-contenido">
+                    <div class="actividad-encabezado">
+                        <span class="actividad-tipo">@GetTipo(m)</span>
+                        <span class="actividad-fecha">@m.Fecha.ToString("dd/MM/yyyy") · @m.Fecha.ToString("HH:mm")</span>
+                    </div>
+                    <div class="actividad-detalle">@m.Texto</div>
+                    @if (!string.IsNullOrWhiteSpace(m.Respuesta))
+                    {
+                        <div class="actividad-respuesta text-muted small">@m.Respuesta</div>
+                    }
+                    <div class="actividad-pie">
+                        @if (m.Exito)
+                        {
+                            <span class="badge bg-success">Exitoso</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Error</span>
+                        }
+                        @if (m.MovimientoId is not null)
+                        {
+                            <span class="badge bg-info text-dark">Movimiento #@m.MovimientoId</span>
+                        }
+                        @if (m.Intent != MessageIntent.Desconocido)
+                        {
+                            <span class="badge bg-secondary">@m.Intent</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyCollection<MensajeLogDto> _mensajes = [];
+    private bool _cargando = true;
+
+    private string _filtroEstado = string.Empty;
+    private string _filtroOrigen = string.Empty;
+    private DateTime? _filtroDesde;
+    private DateTime? _filtroHasta;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _mensajes = await ApiClient.GetMensajesProcesadosAsync();
+        }
+        catch
+        {
+            _mensajes = [];
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private IEnumerable<MensajeLogDto> MensajesFiltrados => _mensajes
+        .Where(m => _filtroEstado switch
+        {
+            "ok" => m.Exito,
+            "error" => !m.Exito,
+            _ => true
+        })
+        .Where(m => string.IsNullOrEmpty(_filtroOrigen) || m.Origen.ToString() == _filtroOrigen)
+        .Where(m => _filtroDesde is null || m.Fecha.Date >= _filtroDesde.Value.Date)
+        .Where(m => _filtroHasta is null || m.Fecha.Date <= _filtroHasta.Value.Date)
+        .OrderByDescending(m => m.Fecha);
+
+    private static string GetIcono(MensajeLogDto m)
+    {
+        if (!m.Exito) return "❌";
+        return m.Origen switch
+        {
+            MessageOrigen.WhatsApp => "💬",
+            MessageOrigen.Asistente => "🤖",
+            MessageOrigen.Api => "⚙",
+            _ => "📌"
+        };
+    }
+
+    private static string GetTipo(MensajeLogDto m) => m.Origen switch
+    {
+        MessageOrigen.WhatsApp => "WhatsApp",
+        MessageOrigen.Asistente => "IA / Asistente",
+        MessageOrigen.Api => "Automatización / API",
+        _ => "Otro"
+    };
+}

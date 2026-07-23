@@ -7,6 +7,7 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject NavigationManager NavigationManager
+@inject FinanzasIA.Application.Interfaces.ICategoriaService CategoriaService
 
 <PageTitle>Crear cuenta - Finanzas IA</PageTitle>
 
@@ -101,6 +102,15 @@
         var result = await UserManager.CreateAsync(user, Input.Password);
         if (result.Succeeded)
         {
+            try
+            {
+                await CategoriaService.CrearCategoriasPredeterminadasAsync(user.Id);
+            }
+            catch
+            {
+                // el registro no debe fallar si el seed de categorías falla
+            }
+
             await SignInManager.SignInAsync(user, isPersistent: true);
             NavigationManager.NavigateTo("/", forceLoad: true);
             return;

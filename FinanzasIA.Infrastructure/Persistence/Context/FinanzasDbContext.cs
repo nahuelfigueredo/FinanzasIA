@@ -23,9 +23,21 @@ public class FinanzasDbContext : DbContext
 
     public DbSet<TicketPendiente> TicketsPendientes => Set<TicketPendiente>();
 
+    public DbSet<ConfiguracionAutomatizacion> ConfiguracionesAutomatizacion => Set<ConfiguracionAutomatizacion>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<ConfiguracionAutomatizacion>(entity =>
+        {
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450)
+                  .IsRequired();
+
+            entity.HasIndex(x => x.UsuarioId)
+                  .IsUnique();
+        });
 
         modelBuilder.Entity<Categoria>(entity =>
         {

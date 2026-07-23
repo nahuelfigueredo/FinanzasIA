@@ -3,6 +3,7 @@ using System;
 using FinanzasIA.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FinanzasIA.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(FinanzasDbContext))]
-    partial class FinanzasDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723011009_AgregarCategoriasSistema")]
+    partial class AgregarCategoriasSistema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -79,57 +82,6 @@ namespace FinanzasIA.Infrastructure.Persistence.Migrations
                             Nombre = "Alimentación",
                             TipoMovimiento = 2
                         });
-                });
-
-            modelBuilder.Entity("FinanzasIA.Core.Entities.ConfiguracionAutomatizacion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("AlertasPresupuesto")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("ClasificacionAutomatica")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("OcrAutomatico")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("Recordatorios")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("RegistroAutomaticoWhatsapp")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("RespuestasAutomaticas")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("ResumenDiario")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("ResumenSemanal")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("UsuarioId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId")
-                        .IsUnique();
-
-                    b.ToTable("ConfiguracionesAutomatizacion");
                 });
 
             modelBuilder.Entity("FinanzasIA.Core.Entities.Cuenta", b =>

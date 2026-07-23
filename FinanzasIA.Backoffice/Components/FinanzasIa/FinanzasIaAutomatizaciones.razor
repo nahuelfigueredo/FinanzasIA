@@ -1,0 +1,113 @@
+@inject FinanzasApiClient ApiClient
+
+@if (_cargando)
+{
+    <p class="text-muted">Cargando automatizaciones...</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(_mensaje))
+    {
+        <div class="alert @( _error ? "alert-danger" : "alert-success")" role="alert">@_mensaje</div>
+    }
+
+    <div class="row g-3">
+        @foreach (var item in _items)
+        {
+            <div class="col-12 col-md-6">
+                <div class="card h-100">
+                    <div class="card-body d-flex align-items-start gap-3">
+                        <span class="fs-4" aria-hidden="true">@item.Icono</span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>@item.Titulo</strong>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch"
+                                           checked="@item.Get(_config)"
+                                           disabled="@_guardando"
+                                           @onchange="@(e => CambiarAsync(item, (bool)e.Value!))" />
+                                </div>
+                            </div>
+                            <p class="text-muted small mb-0">@item.Descripcion</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private AutomatizacionesDto _config = new();
+    private bool _cargando = true;
+    private bool _guardando;
+    private string? _mensaje;
+    private bool _error;
+
+    private sealed record AutomatizacionItem(
+        string Icono,
+        string Titulo,
+        string Descripcion,
+        Func<AutomatizacionesDto, bool> Get,
+        Action<AutomatizacionesDto, bool> Set);
+
+    private readonly AutomatizacionItem[] _items =
+    [
+        new("💬", "Registro automático desde WhatsApp", "Registra movimientos a partir de tus mensajes de WhatsApp.",
+            c => c.RegistroAutomaticoWhatsapp, (c, v) => c.RegistroAutomaticoWhatsapp = v),
+        new("🧾", "OCR automático", "Procesa automáticamente los tickets que envíes como imagen.",
+            c => c.OcrAutomatico, (c, v) => c.OcrAutomatico = v),
+        new("🏷", "Clasificación automática", "Asigna categoría automáticamente a los movimientos nuevos.",
+            c => c.ClasificacionAutomatica, (c, v) => c.ClasificacionAutomatica = v),
+        new("🤖", "Respuestas automáticas", "Responde automáticamente tus consultas por los canales conectados.",
+            c => c.RespuestasAutomaticas, (c, v) => c.RespuestasAutomaticas = v),
+        new("⏰", "Recordatorios", "Te recuerda vencimientos y registros pendientes.",
+            c => c.Recordatorios, (c, v) => c.Recordatorios = v),
+        new("🚨", "Alertas de presupuesto", "Avisa cuando estás por superar un presupuesto.",
+            c => c.AlertasPresupuesto, (c, v) => c.AlertasPresupuesto = v),
+        new("📅", "Resumen diario", "Envía un resumen diario de tus finanzas.",
+            c => c.ResumenDiario, (c, v) => c.ResumenDiario = v),
+        new("🗓", "Resumen semanal", "Envía un resumen semanal con tendencias y totales.",
+            c => c.ResumenSemanal, (c, v) => c.ResumenSemanal = v)
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _config = await ApiClient.GetAutomatizacionesAsync();
+        }
+        catch
+        {
+            _error = true;
+            _mensaje = "No se pudo cargar la configuración de automatizaciones.";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task CambiarAsync(AutomatizacionItem item, bool valor)
+    {
+        item.Set(_config, valor);
+        _guardando = true;
+        _mensaje = null;
+        _error = false;
+
+        try
+        {
+            _config = await ApiClient.GuardarAutomatizacionesAsync(_config);
+            _mensaje = "Cambios guardados.";
+        }
+        catch
+        {
+            _error = true;
+            _mensaje = "No se pudieron guardar los cambios. Intentá de nuevo.";
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

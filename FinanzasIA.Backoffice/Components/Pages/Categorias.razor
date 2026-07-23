@@ -126,6 +126,14 @@ else if (!string.IsNullOrWhiteSpace(_successMessage))
 								{
 									<span class="cat-badge cat-badge-egreso">Egreso</span>
 								}
+								@if (categoria.EsSistema)
+								{
+									<span class="cat-badge cat-badge-sistema" title="Categoría predeterminada del sistema">Sistema</span>
+								}
+								@if (!categoria.Activa)
+								{
+									<span class="cat-badge cat-badge-inactiva">Inactiva</span>
+								}
 							</td>
 							<td>
 								<span class="cat-uso">@GetUso(categoria.Id) movimientos</span>
@@ -134,8 +142,16 @@ else if (!string.IsNullOrWhiteSpace(_successMessage))
 								<div class="cat-actions">
 									<button class="cat-action-btn cat-action-edit" type="button" title="Editar categoría"
 											@onclick="() => Edit(categoria)">✏️</button>
-									<button class="cat-action-btn cat-action-delete" type="button" title="Eliminar categoría"
-											@onclick="() => DeleteAsync(categoria.Id)">🗑️</button>
+									@if (categoria.EsSistema)
+									{
+										<button class="cat-action-btn cat-action-delete" type="button" title="@(categoria.Activa ? "Desactivar categoría" : "Activar categoría")"
+												@onclick="() => CambiarEstadoAsync(categoria)">@(categoria.Activa ? "🚫" : "✅")</button>
+									}
+									else
+									{
+										<button class="cat-action-btn cat-action-delete" type="button" title="Eliminar categoría"
+												@onclick="() => DeleteAsync(categoria.Id)">🗑️</button>
+									}
 								</div>
 							</td>
 						</tr>
@@ -321,6 +337,22 @@ else if (!string.IsNullOrWhiteSpace(_successMessage))
 			await ApiClient.DeleteCategoriaAsync(id);
 			await LoadCategoriasAsync();
 			_successMessage = "Categoría eliminada correctamente.";
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = ex.Message;
+		}
+	}
+
+	private async Task CambiarEstadoAsync(CategoriaDto categoria)
+	{
+		_errorMessage = null;
+		_successMessage = null;
+		try
+		{
+			await ApiClient.CambiarEstadoCategoriaAsync(categoria.Id, !categoria.Activa);
+			await LoadCategoriasAsync();
+			_successMessage = categoria.Activa ? "Categoría desactivada." : "Categoría activada.";
 		}
 		catch (Exception ex)
 		{

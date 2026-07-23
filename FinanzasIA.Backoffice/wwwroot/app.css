@@ -2166,6 +2166,117 @@ html[data-theme="dark"] .page-heading p {
     color: #b91c1c;
 }
 
+.cat-badge-sistema {
+    background: rgba(59, 130, 246, 0.14);
+    color: var(--primary);
+    margin-left: 0.35rem;
+}
+
+.cat-badge-inactiva {
+    background: rgba(148, 163, 184, 0.2);
+    color: var(--text-secondary);
+    margin-left: 0.35rem;
+}
+
+/* ---- Finanzas IA: pestañas ---- */
+.fia-tabs {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    margin-bottom: 1.25rem;
+}
+
+.fia-tab {
+    border: none;
+    background: transparent;
+    padding: 0.55rem 1rem;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+    border-bottom: 3px solid transparent;
+    border-radius: 0.5rem 0.5rem 0 0;
+    cursor: pointer;
+    transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.fia-tab:hover {
+    background: rgba(59, 130, 246, 0.08);
+    color: var(--primary, #3b82f6);
+}
+
+.fia-tab.activa {
+    color: var(--primary, #3b82f6);
+    border-bottom-color: var(--primary, #3b82f6);
+}
+
+/* ---- Finanzas IA: línea de tiempo de actividad ---- */
+.actividad-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.actividad-evento {
+    display: flex;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.25));
+    border-left: 4px solid var(--primary, #3b82f6);
+}
+
+.actividad-evento-error {
+    border-left-color: #ef4444;
+}
+
+.actividad-icono {
+    font-size: 1.35rem;
+    line-height: 1;
+    margin-top: 0.15rem;
+}
+
+.actividad-contenido {
+    flex: 1;
+    min-width: 0;
+}
+
+.actividad-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.actividad-tipo {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.actividad-fecha {
+    color: var(--text-secondary, #64748b);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.actividad-detalle {
+    margin-top: 0.2rem;
+    word-break: break-word;
+}
+
+.actividad-respuesta {
+    margin-top: 0.15rem;
+}
+
+.actividad-pie {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.45rem;
+    flex-wrap: wrap;
+}
+
 .cat-uso {
     color: #64748b;
     font-size: 0.85rem;

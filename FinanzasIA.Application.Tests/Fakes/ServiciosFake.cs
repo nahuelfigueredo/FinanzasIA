@@ -76,6 +76,12 @@ internal sealed class FakeCategoriaService : ICategoriaService
 
     public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
         => Task.FromResult(false);
+
+    public Task CrearCategoriasPredeterminadasAsync(string usuarioId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task<bool> CambiarEstadoAsync(int id, bool activa, CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }
 
 internal sealed class FakeCuentaService : ICuentaService
