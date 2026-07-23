@@ -73,6 +73,7 @@ public class WhatsAppMessageHandler
         {
             var usuarioId = await _usuarioWhatsappService.BuscarUsuarioPorNumeroAsync(from, cancellationToken: cancellationToken);
             entry.UsuarioId = usuarioId;
+            _logger.LogInformation("Usuario resuelto para {Phone}: {UsuarioId}", from, usuarioId ?? "(no vinculado)");
 
             if (usuarioId is null)
             {
@@ -100,6 +101,9 @@ public class WhatsAppMessageHandler
 
                 entry.MovimientoId = resultado.MovimientoId;
                 response = resultado.Respuesta;
+                _logger.LogInformation(
+                    "Resultado del procesamiento. Intent: {Intent}, Exito: {Exito}, MovimientoId: {MovimientoId}",
+                    resultado.Intent, resultado.Exito, resultado.MovimientoId);
             }
 
             entry.Exito = true;

@@ -23,12 +23,13 @@ public class WhatsAppService : IWhatsAppService
         _options.AccessToken = _options.AccessToken?.Trim() ?? string.Empty;
         _options.VerifyToken = _options.VerifyToken?.Trim() ?? string.Empty;
         _options.PhoneNumberId = _options.PhoneNumberId?.Trim() ?? string.Empty;
+        _options.GraphApiVersion = string.IsNullOrWhiteSpace(_options.GraphApiVersion) ? "v23.0" : _options.GraphApiVersion.Trim();
     }
 
     // TODO: Método temporal de diagnóstico. Eliminar al terminar las pruebas.
     public async Task<(int StatusCode, string ResponseBody)> TestMetaAuthAsync(CancellationToken cancellationToken = default)
     {
-        var url = $"https://graph.facebook.com/v25.0/{_options.PhoneNumberId}";
+        var url = $"https://graph.facebook.com/{_options.GraphApiVersion}/{_options.PhoneNumberId}";
 
         var tokenPrefix = _options.AccessToken.Length >= 10
             ? _options.AccessToken[..10]
@@ -58,6 +59,15 @@ public class WhatsAppService : IWhatsAppService
 
     public async Task SendTextMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
     {
+        await SendTextMessageRawAsync(toPhoneNumber, message, cancellationToken);
+    }
+
+    /// <summary>
+    /// Envía un mensaje de texto y devuelve el status y el body completo de Meta.
+    /// Lanza excepción con el contenido devuelto por Meta si la respuesta no es exitosa.
+    /// </summary>
+    public async Task<(int StatusCode, string ResponseBody)> SendTextMessageRawAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
+    {
         if (string.IsNullOrWhiteSpace(_options.AccessToken) ||
             string.IsNullOrWhiteSpace(_options.PhoneNumberId))
         {
@@ -72,14 +82,19 @@ public class WhatsAppService : IWhatsAppService
                 nameof(toPhoneNumber));
         }
 
-        var url = $"https://graph.facebook.com/v23.0/{_options.PhoneNumberId}/messages";
+        var url = _options.MessagesEndpoint;
 
+        // Cuerpo según la especificación de WhatsApp Cloud API:
+        // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
         var body = new
         {
             messaging_product = "whatsapp",
+            recipient_type = "individual",
             to = toPhoneNumber,
+            type = "text",
             text = new
             {
+                preview_url = false,
                 body = message
             }
         };
@@ -99,9 +114,10 @@ public class WhatsAppService : IWhatsAppService
             : _options.AccessToken;
 
         _logger.LogInformation(
-            "SendTextMessage -> URL: {Url}, PhoneNumberId: {PhoneNumberId}, AccessToken longitud: {TokenLength}, AccessToken inicio: {TokenPrefix}...",
+            "SendTextMessage -> URL: {Url}, PhoneNumberId: {PhoneNumberId}, To: {To}, AccessToken longitud: {TokenLength}, AccessToken inicio: {TokenPrefix}...",
             url,
             _options.PhoneNumberId,
+            toPhoneNumber,
             _options.AccessToken.Length,
             tokenPrefix);
 
@@ -109,16 +125,25 @@ public class WhatsAppService : IWhatsAppService
 
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        _logger.LogInformation(
-            "SendTextMessage <- StatusCode: {StatusCode}, Body: {Body}",
-            (int)response.StatusCode,
-            responseBody);
-
-        if (!response.IsSuccessStatusCode)
+        if (response.IsSuccessStatusCode)
         {
-            // TODO: Temporal para diagnóstico: la excepción contiene solo el JSON puro de Meta.
-            throw new Exception(responseBody);
+            _logger.LogInformation(
+                "SendTextMessage <- StatusCode: {StatusCode}, Body: {Body}",
+                (int)response.StatusCode,
+                responseBody);
         }
+        else
+        {
+            _logger.LogError(
+                "SendTextMessage <- Meta devolvió error. StatusCode: {StatusCode}, Body: {Body}",
+                (int)response.StatusCode,
+                responseBody);
+
+            throw new HttpRequestException(
+                $"WhatsApp API devolvió {(int)response.StatusCode} ({response.StatusCode}). Respuesta: {responseBody}");
+        }
+
+        return ((int)response.StatusCode, responseBody);
     }
 
     public async Task<(byte[] Contenido, string MimeType)> DownloadMediaAsync(
@@ -141,7 +166,7 @@ public class WhatsAppService : IWhatsAppService
         // 1) Obtener la URL temporal del archivo
         using var metadataRequest = new HttpRequestMessage(
             HttpMethod.Get,
-            $"https://graph.facebook.com/v23.0/{mediaId}");
+            $"https://graph.facebook.com/{_options.GraphApiVersion}/{mediaId}");
 
         metadataRequest.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", _options.AccessToken);

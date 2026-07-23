@@ -22,7 +22,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
-builder.Services.Configure<WhatsAppOptions>(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
+var whatsAppOptionsBuilder = builder.Services.AddOptions<WhatsAppOptions>()
+    .Bind(builder.Configuration.GetSection(WhatsAppOptions.SectionName));
+
+// En Production la app no debe arrancar sin las credenciales de WhatsApp:
+// un token faltante haría fallar los envíos silenciosamente.
+if (!builder.Environment.IsDevelopment())
+{
+    whatsAppOptionsBuilder
+        .Validate(o => !string.IsNullOrWhiteSpace(o.AccessToken), "Falta la variable de entorno WhatsApp__AccessToken.")
+        .Validate(o => !string.IsNullOrWhiteSpace(o.PhoneNumberId), "Falta la variable de entorno WhatsApp__PhoneNumberId.")
+        .Validate(o => !string.IsNullOrWhiteSpace(o.VerifyToken), "Falta la variable de entorno WhatsApp__VerifyToken.")
+        .ValidateOnStart();
+}
 builder.Services.Configure<OcrOptions>(builder.Configuration.GetSection(OcrOptions.SectionName));
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<FinanzasIA.Application.Interfaces.ITicketOcrProvider, OcrSpaceProvider>();
