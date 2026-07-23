@@ -28,6 +28,8 @@ builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<FinanzasIA.Application.Interfaces.ITicketOcrProvider, OcrSpaceProvider>();
 builder.Services.AddScoped<IUsuarioWhatsAppResolver, UsuarioWhatsAppResolver>();
 builder.Services.AddScoped<FinanzasIA.Application.Interfaces.ICanalMensajeriaSender, WhatsAppSenderAdapter>();
+builder.Services.AddSingleton<WhatsAppDiagnosticsStore>();
+builder.Services.AddScoped<WhatsAppMessageHandler>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>

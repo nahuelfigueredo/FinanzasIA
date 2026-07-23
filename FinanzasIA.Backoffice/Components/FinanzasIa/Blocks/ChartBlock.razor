@@ -1,0 +1,168 @@
+@* Renderiza un gráfico (Pie, Bar, Column, Line, Area; Radar hace fallback a Bar)
+   reutilizando los visuales CSS/SVG del resto de la aplicación. *@
+<div class="asistente-grafico">
+    <div class="asistente-grafico-header">
+        <strong>@Block.Titulo</strong>
+        @if (!string.IsNullOrEmpty(Block.Subtitulo))
+        {
+            <span class="asistente-grafico-sub">@Block.Subtitulo</span>
+        }
+    </div>
+
+    @switch (Kind)
+    {
+        case ChartKind.Pie:
+            var total = Block.Valores.Sum();
+            <div class="asistente-grafico-donut">
+                <div class="donut-chart" style="background:@DonutGradient()"><span class="donut-hole"></span></div>
+                <div class="asistente-grafico-leyenda">
+                    @for (var i = 0; i < Block.Etiquetas.Count; i++)
+                    {
+                        var idx = i;
+                        <div class="asistente-grafico-leyenda-item">
+                            <span class="donut-dot" style="background:@ColorDe(idx)"></span>
+                            <span>@Block.Etiquetas[idx]</span>
+                            <strong>@Block.Valores[idx].ToString("C0", Cultura)</strong>
+                            @if (total > 0)
+                            {
+                                <span class="asistente-grafico-pct">@Math.Round(Block.Valores[idx] / total * 100, 0)%</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            break;
+
+        case ChartKind.Column:
+            var maxCol = MaxValor();
+            <div class="asistente-grafico-columnas">
+                @for (var i = 0; i < Block.Etiquetas.Count; i++)
+                {
+                    var idx = i;
+                    <div class="asistente-columna-grupo">
+                        <div class="asistente-columna-barras">
+                            <div class="asistente-columna income" style="height:@Pct(Block.Valores[idx], maxCol)%" title="@Block.Valores[idx].ToString("C0", Cultura)"></div>
+                            @if (Block.ValoresSecundarios is not null && idx < Block.ValoresSecundarios.Count)
+                            {
+                                <div class="asistente-columna expense" style="height:@Pct(Block.ValoresSecundarios[idx], maxCol)%" title="@Block.ValoresSecundarios[idx].ToString("C0", Cultura)"></div>
+                            }
+                        </div>
+                        <span class="asistente-columna-etiqueta">@Block.Etiquetas[idx]</span>
+                    </div>
+                }
+            </div>
+            @if (Block.ValoresSecundarios is not null)
+            {
+                <div class="asistente-grafico-leyenda-h">
+                    <span><span class="donut-dot income-dot"></span> @(Block.EtiquetaSerie ?? "Serie 1")</span>
+                    <span><span class="donut-dot expense-dot"></span> @(Block.EtiquetaSerieSecundaria ?? "Serie 2")</span>
+                </div>
+            }
+            break;
+
+        case ChartKind.Line:
+        case ChartKind.Area:
+            var maxLin = MaxValor();
+            <div class="asistente-grafico-lineas">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="@Block.Titulo">
+                    @if (Kind == ChartKind.Area)
+                    {
+                        <polygon fill="rgba(99,102,241,0.18)" points="0,100 @Puntos(maxLin) 100,100" />
+                    }
+                    <polyline fill="none" stroke="#6366f1" stroke-width="2" vector-effect="non-scaling-stroke"
+                              points="@Puntos(maxLin)" />
+                </svg>
+                <div class="asistente-grafico-ejes">
+                    @foreach (var etiqueta in Block.Etiquetas)
+                    {
+                        <span>@etiqueta</span>
+                    }
+                </div>
+            </div>
+            break;
+
+        default: @* Bar y fallback (Radar) *@
+            var maxBar = MaxValor();
+            <div class="asistente-grafico-barras">
+                @for (var i = 0; i < Block.Etiquetas.Count; i++)
+                {
+                    var idx = i;
+                    <div class="asistente-grafico-fila">
+                        <div class="chart-label">
+                            <span>@Block.Etiquetas[idx]</span>
+                            <strong>@Block.Valores[idx].ToString("C0", Cultura)</strong>
+                        </div>
+                        <div class="chart-track">
+                            <div class="chart-bar income" style="width:@Pct(Block.Valores[idx], maxBar)%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+            break;
+    }
+
+    <div class="asistente-grafico-footer">
+        <span>@Block.Periodo</span>
+        <strong>Total: @Block.Total.ToString("C0", Cultura)</strong>
+    </div>
+    @if (!string.IsNullOrEmpty(Block.Descripcion))
+    {
+        <div class="asistente-grafico-desc">@Block.Descripcion</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ChartBlockDto Block { get; set; } = default!;
+
+    private static readonly System.Globalization.CultureInfo Cultura = new("es-AR");
+
+    private static readonly string[] Paleta =
+    [
+        "#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4",
+        "#a855f7", "#ec4899", "#84cc16", "#f97316", "#14b8a6"
+    ];
+
+    /// <summary>Radar aún no está implementado: fallback a barras.</summary>
+    private ChartKind Kind => Block.TipoGrafico == ChartKind.Radar ? ChartKind.Bar : Block.TipoGrafico;
+
+    private string ColorDe(int i) =>
+        Block.Colores is { Count: > 0 } c ? c[i % c.Count] : Paleta[i % Paleta.Length];
+
+    private decimal MaxValor() =>
+        Block.Valores.Concat(Block.ValoresSecundarios ?? []).DefaultIfEmpty(0).Max();
+
+    private static decimal Pct(decimal valor, decimal max) =>
+        max <= 0 ? 0 : Math.Round(valor / max * 100, 1);
+
+    private string DonutGradient()
+    {
+        var total = Block.Valores.Sum();
+        if (total <= 0) { return "var(--bs-secondary-bg, #e9ecef)"; }
+
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var partes = new List<string>();
+        decimal acumulado = 0;
+        for (var i = 0; i < Block.Valores.Count; i++)
+        {
+            var desde = acumulado / total * 360m;
+            acumulado += Block.Valores[i];
+            var hasta = acumulado / total * 360m;
+            partes.Add($"{ColorDe(i)} {desde.ToString("0.##", inv)}deg {hasta.ToString("0.##", inv)}deg");
+        }
+        return $"conic-gradient({string.Join(", ", partes)})";
+    }
+
+    private string Puntos(decimal max)
+    {
+        if (Block.Valores.Count == 0) { return string.Empty; }
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var puntos = new List<string>();
+        for (var i = 0; i < Block.Valores.Count; i++)
+        {
+            var x = Block.Valores.Count == 1 ? 50m : (decimal)i / (Block.Valores.Count - 1) * 100m;
+            var y = max <= 0 ? 90m : 90m - (Block.Valores[i] / max * 80m);
+            puntos.Add($"{x.ToString("0.##", inv)},{y.ToString("0.##", inv)}");
+        }
+        return string.Join(" ", puntos);
+    }
+}

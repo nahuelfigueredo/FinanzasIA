@@ -1,0 +1,44 @@
+@* Dispatcher polimórfico: mapea el tipo de bloque a su componente Razor.
+   Para soportar un bloque nuevo alcanza con crear el componente y registrarlo
+   en el mapa; el chat no cambia. *@
+<DynamicComponent Type="ComponentePara(Block)" Parameters="ParametrosPara(Block)" />
+
+@code {
+    [Parameter, EditorRequired] public ResponseBlockDto Block { get; set; } = default!;
+    [Parameter] public bool Deshabilitado { get; set; }
+    [Parameter] public EventCallback<string> OnSugerencia { get; set; }
+    [Parameter] public EventCallback<ActionItemDto> OnAccion { get; set; }
+
+    private static readonly Dictionary<Type, Type> Mapa = new()
+    {
+        [typeof(TextBlockDto)] = typeof(TextBlock),
+        [typeof(ChartBlockDto)] = typeof(ChartBlock),
+        [typeof(TableBlockDto)] = typeof(TableBlock),
+        [typeof(CardBlockDto)] = typeof(CardBlock),
+        [typeof(SuggestionBlockDto)] = typeof(SuggestionBlock),
+        [typeof(ActionBlockDto)] = typeof(ActionBlock)
+    };
+
+    private static Type ComponentePara(ResponseBlockDto bloque) =>
+        Mapa.TryGetValue(bloque.GetType(), out var tipo)
+            ? tipo
+            : throw new NotSupportedException($"No hay componente registrado para el bloque '{bloque.Type}'.");
+
+    private Dictionary<string, object> ParametrosPara(ResponseBlockDto bloque)
+    {
+        var parametros = new Dictionary<string, object> { ["Block"] = bloque };
+
+        if (bloque is SuggestionBlockDto)
+        {
+            parametros["Deshabilitado"] = Deshabilitado;
+            parametros["OnSugerencia"] = OnSugerencia;
+        }
+        else if (bloque is ActionBlockDto)
+        {
+            parametros["Deshabilitado"] = Deshabilitado;
+            parametros["OnAccion"] = OnAccion;
+        }
+
+        return parametros;
+    }
+}

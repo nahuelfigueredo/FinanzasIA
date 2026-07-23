@@ -1,0 +1,21 @@
+@* Botones de acción interactivos: navegar o enviar un mensaje al asistente. *@
+<div class="asistente-acciones">
+    @foreach (var accion in Block.Acciones)
+    {
+        var item = accion;
+        <button type="button" class="asistente-chip asistente-chip-accion" disabled="@Deshabilitado"
+                @onclick="() => OnAccion.InvokeAsync(item)">
+            @if (!string.IsNullOrEmpty(item.Icono))
+            {
+                <span aria-hidden="true">@item.Icono</span>
+            }
+            @item.Etiqueta
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ActionBlockDto Block { get; set; } = default!;
+    [Parameter] public bool Deshabilitado { get; set; }
+    [Parameter] public EventCallback<ActionItemDto> OnAccion { get; set; }
+}

@@ -1,0 +1,14 @@
+@* Renderiza un bloque de texto con soporte Markdown básico. *@
+<div class="asistente-texto asistente-markdown">@((MarkupString)Render(Block.Texto))</div>
+
+@code {
+    [Parameter, EditorRequired] public TextBlockDto Block { get; set; } = default!;
+
+    private static string Render(string texto)
+    {
+        var html = System.Net.WebUtility.HtmlEncode(texto);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", "<em>$1</em>");
+        return html.Replace("\n", "<br />");
+    }
+}

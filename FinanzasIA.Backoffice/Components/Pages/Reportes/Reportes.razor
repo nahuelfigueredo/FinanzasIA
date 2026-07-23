@@ -1,0 +1,13 @@
+@page "/reportes"
+@inject NavigationManager Navigation
+
+@* Ruta de compatibilidad: /reportes no tiene página propia porque los
+   reportes viven en subrutas (/reportes/semanal, /reportes/anual, etc.).
+   Redirige automáticamente al reporte semanal como landing canónica. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/reportes/semanal", replace: true);
+    }
+}

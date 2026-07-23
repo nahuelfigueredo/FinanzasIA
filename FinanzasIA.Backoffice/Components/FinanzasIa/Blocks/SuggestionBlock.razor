@@ -1,0 +1,15 @@
+@* Sugerencias para continuar la conversación; cada chip envía un nuevo mensaje. *@
+<div class="asistente-acciones">
+    @foreach (var sugerencia in Block.Sugerencias)
+    {
+        var texto = sugerencia;
+        <button type="button" class="asistente-chip" disabled="@Deshabilitado"
+                @onclick="() => OnSugerencia.InvokeAsync(texto)">💬 @texto</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public SuggestionBlockDto Block { get; set; } = default!;
+    [Parameter] public bool Deshabilitado { get; set; }
+    [Parameter] public EventCallback<string> OnSugerencia { get; set; }
+}

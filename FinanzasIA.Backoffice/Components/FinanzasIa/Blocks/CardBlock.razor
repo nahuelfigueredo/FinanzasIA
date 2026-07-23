@@ -1,0 +1,23 @@
+@* Renderiza una tarjeta de métrica destacada (también usada para "sin datos"). *@
+<div class="asistente-card" style="@(string.IsNullOrEmpty(Block.Color) ? null : $"border-left-color:{Block.Color}")">
+    @if (!string.IsNullOrEmpty(Block.Icono))
+    {
+        <span class="asistente-card-icono" aria-hidden="true">@Block.Icono</span>
+    }
+    <div class="asistente-card-cuerpo">
+        <span class="asistente-card-titulo">@Block.Titulo</span>
+        <strong class="asistente-card-valor" style="@(string.IsNullOrEmpty(Block.Color) ? null : $"color:{Block.Color}")">@Block.Valor</strong>
+        @if (!string.IsNullOrEmpty(Block.Variacion))
+        {
+            <span class="asistente-card-variacion">@Block.Variacion</span>
+        }
+        @if (!string.IsNullOrEmpty(Block.Descripcion))
+        {
+            <span class="asistente-card-desc">@Block.Descripcion</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CardBlockDto Block { get; set; } = default!;
+}

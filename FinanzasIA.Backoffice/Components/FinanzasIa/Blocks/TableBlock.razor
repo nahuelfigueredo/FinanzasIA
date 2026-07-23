@@ -1,0 +1,43 @@
+@* Renderiza una tabla de datos con fila de totales opcional. *@
+<div class="asistente-tabla">
+    @if (!string.IsNullOrEmpty(Block.Titulo))
+    {
+        <div class="asistente-tabla-titulo">@Block.Titulo</div>
+    }
+    <table>
+        <thead>
+            <tr>
+                @foreach (var columna in Block.Columnas)
+                {
+                    <th>@columna</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fila in Block.Filas)
+            {
+                <tr>
+                    @foreach (var celda in fila)
+                    {
+                        <td>@celda</td>
+                    }
+                </tr>
+            }
+        </tbody>
+        @if (Block.Totales is { Count: > 0 })
+        {
+            <tfoot>
+                <tr>
+                    @foreach (var total in Block.Totales)
+                    {
+                        <td>@total</td>
+                    }
+                </tr>
+            </tfoot>
+        }
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TableBlockDto Block { get; set; } = default!;
+}
