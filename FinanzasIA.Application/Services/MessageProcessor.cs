@@ -146,7 +146,7 @@ public class MessageProcessor : IMessageProcessor
                 "con el formato {\"tipo\":\"Gasto|Ingreso\",\"monto\":0,\"categoria\":\"\",\"descripcion\":\"\"}. " +
                 "Si el mensaje no describe un movimiento, respondé {}.\n\nMensaje: " + texto;
 
-            var respuesta = await _iaProvider.GenerarRespuestaAsync(prompt, new ContextoFinancieroDto(), cancellationToken);
+            var respuesta = await _iaProvider.GenerarRespuestaAsync(prompt, new ContextoFinancieroDto(), null, cancellationToken);
 
             var inicio = respuesta.IndexOf('{');
             var fin = respuesta.LastIndexOf('}');

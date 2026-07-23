@@ -12,7 +12,10 @@ public static class DependencyInjection
         services.AddScoped<IMovimientoService, MovimientoService>();
         services.AddScoped<ICuentaService, CuentaService>();
         services.AddScoped<IAnalisisFinancieroService, AnalisisFinancieroService>();
-        services.AddScoped<IAsistenteIAProvider, ReglasAsistenteProvider>();
+        // Proveedor de reglas siempre disponible (fallback del proveedor OpenAI).
+        services.AddScoped<ReglasAsistenteProvider>();
+        // Registro por defecto: si la capa host configura OpenAI, lo reemplaza.
+        services.AddScoped<IAsistenteIAProvider>(sp => sp.GetRequiredService<ReglasAsistenteProvider>());
         services.AddScoped<IAsistenteService, AsistenteService>();
         services.AddScoped<IFinanzasAnalyzer, FinanzasAnalyzer>();
         services.AddScoped<ISugerenciasService, SugerenciasService>();

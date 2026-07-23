@@ -141,10 +141,14 @@ public class FinanzasApiClient
         response.EnsureSuccessStatusCode();
     }
 
-    public async Task<AsistenteRespuestaDto> PreguntarAsistenteAsync(string pregunta, CancellationToken cancellationToken = default)
+    public async Task<AsistenteRespuestaDto> PreguntarAsistenteAsync(string pregunta, List<AsistenteMensajeDto>? historial = null, CancellationToken cancellationToken = default)
     {
         await EnsureUserHeaderAsync();
-        var response = await _httpClient.PostAsJsonAsync("api/asistente/preguntar", new AsistentePreguntaDto { Pregunta = pregunta }, cancellationToken);
+        var response = await _httpClient.PostAsJsonAsync("api/asistente/preguntar", new AsistentePreguntaDto
+        {
+            Pregunta = pregunta,
+            Historial = historial ?? []
+        }, cancellationToken);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AsistenteRespuestaDto>(cancellationToken))!;
     }

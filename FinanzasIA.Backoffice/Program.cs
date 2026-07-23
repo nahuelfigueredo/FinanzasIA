@@ -48,6 +48,7 @@ builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<FinanzasIA.Application.Interfaces.ITicketOcrProvider, OcrSpaceProvider>();
 builder.Services.AddScoped<IUsuarioWhatsAppResolver, UsuarioWhatsAppResolver>();
 builder.Services.AddScoped<FinanzasIA.Application.Interfaces.ICanalMensajeriaSender, WhatsAppSenderAdapter>();
+builder.Services.AddScoped<FinanzasIA.Backoffice.Services.ThemeService>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 

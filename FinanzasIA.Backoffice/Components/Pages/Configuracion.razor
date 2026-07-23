@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @inject IJSRuntime JSRuntime
 @inject FinanzasApiClient ApiClient
+@inject FinanzasIA.Backoffice.Services.ThemeService Theme
+@implements IDisposable
 
 <PageTitle>Configuración</PageTitle>
 
@@ -57,6 +59,23 @@ else
                 </div>
 
                 <button class="btn btn-primary mt-4" type="button" @onclick="SaveAsync">💾 Guardar configuración</button>
+            </div>
+
+            <div class="dashboard-panel mt-4">
+                <h4 class="mb-1"><span class="section-icon" aria-hidden="true">🎨</span> Apariencia</h4>
+                <p class="text-muted small mb-3">Elegí el tema de toda la aplicación. Se aplica al instante y se recuerda en futuras sesiones.</p>
+                <div class="theme-selector">
+                    <button type="button" class="theme-option @(Theme.IsDark ? "" : "activa")" @onclick="@(() => Theme.SetThemeAsync("light"))">
+                        <span class="theme-option-icono" aria-hidden="true">☀️</span>
+                        <strong>Modo Claro</strong>
+                        <span class="text-muted small">Blancos suaves y grises claros</span>
+                    </button>
+                    <button type="button" class="theme-option @(Theme.IsDark ? "activa" : "")" @onclick="@(() => Theme.SetThemeAsync("dark"))">
+                        <span class="theme-option-icono" aria-hidden="true">🌙</span>
+                        <strong>Modo Oscuro</strong>
+                        <span class="text-muted small">Oscuro moderno, sin negro absoluto</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -153,6 +172,11 @@ else
     private string _whatsappMensaje = string.Empty;
     private bool _whatsappExito;
 
+    protected override void OnInitialized()
+    {
+        Theme.OnChange += OnThemeChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
@@ -160,6 +184,7 @@ else
             return;
         }
 
+        await Theme.InitializeAsync();
         _preferences = await JSRuntime.InvokeAsync<PreferenceModel>("finanzasPreferences.get");
         _isLoading = false;
         StateHasChanged();
@@ -167,6 +192,10 @@ else
         await CargarNumerosAsync();
         StateHasChanged();
     }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Theme.OnChange -= OnThemeChanged;
 
     private async Task CargarNumerosAsync()
     {

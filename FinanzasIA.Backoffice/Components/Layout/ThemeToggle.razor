@@ -1,26 +1,28 @@
 @rendermode InteractiveServer
-@inject IJSRuntime JSRuntime
+@implements IDisposable
+@inject FinanzasIA.Backoffice.Services.ThemeService Theme
 
-<button type="button" class="theme-toggle theme-toggle-icon" @onclick="ToggleThemeAsync" title="@(_isDark ? "Modo claro" : "Modo oscuro")" aria-label="Cambiar tema">
-    <span aria-hidden="true">@(_isDark ? "☀️" : "🌙")</span>
+<button type="button" class="theme-toggle theme-toggle-icon" @onclick="ToggleThemeAsync" title="@(Theme.IsDark ? "Modo claro" : "Modo oscuro")" aria-label="Cambiar tema">
+	<span aria-hidden="true">@(Theme.IsDark ? "☀️" : "🌙")</span>
 </button>
 
 @code {
-    private bool _isDark;
+	protected override void OnInitialized()
+	{
+		Theme.OnChange += OnThemeChanged;
+	}
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender)
-        {
-            return;
-        }
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await Theme.InitializeAsync();
+		}
+	}
 
-        _isDark = await JSRuntime.InvokeAsync<bool>("finanzasTheme.initialize");
-        StateHasChanged();
-    }
+	private async Task ToggleThemeAsync() => await Theme.ToggleAsync();
 
-    private async Task ToggleThemeAsync()
-    {
-        _isDark = await JSRuntime.InvokeAsync<bool>("finanzasTheme.toggle");
-    }
+	private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+	public void Dispose() => Theme.OnChange -= OnThemeChanged;
 }

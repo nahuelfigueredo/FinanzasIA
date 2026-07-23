@@ -10,5 +10,9 @@ namespace FinanzasIA.Application.Interfaces;
 /// </summary>
 public interface IAsistenteIAProvider
 {
-    Task<string> GenerarRespuestaAsync(string pregunta, ContextoFinancieroDto contexto, CancellationToken cancellationToken = default);
+    Task<string> GenerarRespuestaAsync(
+        string pregunta,
+        ContextoFinancieroDto contexto,
+        IReadOnlyCollection<AsistenteMensajeDto>? historial = null,
+        CancellationToken cancellationToken = default);
 }

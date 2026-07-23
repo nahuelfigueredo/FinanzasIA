@@ -115,7 +115,7 @@ internal sealed class FakeAsistenteIAProvider : IAsistenteIAProvider
     public int Invocaciones { get; private set; }
     public string RespuestaJson { get; set; } = "{}";
 
-    public Task<string> GenerarRespuestaAsync(string pregunta, ContextoFinancieroDto contexto, CancellationToken cancellationToken = default)
+    public Task<string> GenerarRespuestaAsync(string pregunta, ContextoFinancieroDto contexto, IReadOnlyCollection<AsistenteMensajeDto>? historial = null, CancellationToken cancellationToken = default)
     {
         Invocaciones++;
         return Task.FromResult(RespuestaJson);

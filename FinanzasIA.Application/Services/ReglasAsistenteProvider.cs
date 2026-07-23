@@ -15,7 +15,7 @@ public class ReglasAsistenteProvider : IAsistenteIAProvider
 {
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
 
-    public Task<string> GenerarRespuestaAsync(string pregunta, ContextoFinancieroDto contexto, CancellationToken cancellationToken = default)
+    public Task<string> GenerarRespuestaAsync(string pregunta, ContextoFinancieroDto contexto, IReadOnlyCollection<AsistenteMensajeDto>? historial = null, CancellationToken cancellationToken = default)
     {
         var texto = Normalizar(pregunta);
 

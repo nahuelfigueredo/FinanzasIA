@@ -8,5 +8,5 @@ namespace FinanzasIA.Application.Interfaces;
 /// </summary>
 public interface IAsistenteService
 {
-    Task<AsistenteRespuestaDto> PreguntarAsync(string pregunta, string? usuarioId = null, CancellationToken cancellationToken = default);
+    Task<AsistenteRespuestaDto> PreguntarAsync(AsistentePreguntaDto pregunta, string? usuarioId = null, CancellationToken cancellationToken = default);
 }
