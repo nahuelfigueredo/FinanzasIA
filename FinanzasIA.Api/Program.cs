@@ -51,6 +51,22 @@ builder.Services.AddCors(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Asistente con IA real: si hay ApiKey de OpenAI configurada, se usa OpenAI
+// (con fallback automático a reglas); si no, queda el proveedor de reglas.
+var openAiApiKey = builder.Configuration["OpenAI:ApiKey"];
+if (!string.IsNullOrWhiteSpace(openAiApiKey))
+{
+    var openAiModel = builder.Configuration["OpenAI:Model"] ?? "gpt-4o-mini";
+    builder.Services.AddHttpClient("openai");
+    builder.Services.AddScoped<FinanzasIA.Application.Interfaces.IAsistenteIAProvider>(sp =>
+        new FinanzasIA.Application.Services.OpenAIAsistenteProvider(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("openai"),
+            sp.GetRequiredService<FinanzasIA.Application.Services.ReglasAsistenteProvider>(),
+            sp.GetRequiredService<ILogger<FinanzasIA.Application.Services.OpenAIAsistenteProvider>>(),
+            openAiApiKey,
+            openAiModel));
+}
+
 var app = builder.Build();
 
 // Swagger habilitado también en Production (temporal, para verificar el deploy en Render).

@@ -31,7 +31,7 @@ public class AsistenteController : ControllerBase
         try
         {
             var userId = HttpContext?.Request.Headers.TryGetValue("X-User-Id", out var value) == true ? value.ToString() : null;
-            var respuesta = await _asistenteService.PreguntarAsync(dto.Pregunta, userId, cancellationToken);
+            var respuesta = await _asistenteService.PreguntarAsync(dto, userId, cancellationToken);
             return Ok(respuesta);
         }
         catch (Exception ex)
