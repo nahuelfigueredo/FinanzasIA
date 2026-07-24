@@ -1,0 +1,23 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "changes": [
+        {
+          "value": {
+            "messages": [
+              {
+                "from": "5492215916893",
+                "id": "wamid.test.ingreso",
+                "type": "text",
+                "text": {
+                  "body": "Cobré 500000 de sueldo"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

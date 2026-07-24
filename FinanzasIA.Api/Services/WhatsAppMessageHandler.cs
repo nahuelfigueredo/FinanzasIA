@@ -100,10 +100,15 @@ public class WhatsAppMessageHandler
                 }, cancellationToken);
 
                 entry.MovimientoId = resultado.MovimientoId;
+                entry.Intent = resultado.Intent.ToString();
                 response = resultado.Respuesta;
                 _logger.LogInformation(
                     "Resultado del procesamiento. Intent: {Intent}, Exito: {Exito}, MovimientoId: {MovimientoId}",
                     resultado.Intent, resultado.Exito, resultado.MovimientoId);
+                if (resultado.MovimientoId is not null)
+                {
+                    _logger.LogInformation("Movimiento creado: {MovimientoId}", resultado.MovimientoId);
+                }
             }
 
             entry.Exito = true;
@@ -117,10 +122,20 @@ public class WhatsAppMessageHandler
         }
 
         entry.Respuesta = response;
+        _logger.LogInformation("Respuesta generada: {Respuesta}", response);
 
         if (enviarRespuesta && !string.IsNullOrWhiteSpace(response))
         {
+            // TODO: Log temporal de diagnóstico. Eliminar al terminar las pruebas.
+            _logger.LogInformation(
+                "PRE-ENVIO EnviarRespuestaAsync -> from: {From} (origen: {Origen})",
+                from,
+                origen);
             await EnviarRespuestaAsync(from, response, cancellationToken);
+        }
+        else
+        {
+            _logger.LogInformation("Respuesta NO enviada por WhatsApp (enviarRespuesta={EnviarRespuesta}).", enviarRespuesta);
         }
 
         _diagnostics.Registrar(entry);

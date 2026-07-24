@@ -65,6 +65,9 @@ public class WhatsAppDiagnosticEntry
     /// <summary>Id del movimiento creado, si corresponde.</summary>
     public int? MovimientoId { get; set; }
 
+    /// <summary>Intención detectada por el motor de mensajes (si aplica).</summary>
+    public string? Intent { get; set; }
+
     /// <summary>Respuesta enviada (o que se habría enviado) al usuario.</summary>
     public string? Respuesta { get; set; }
 

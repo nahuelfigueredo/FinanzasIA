@@ -143,17 +143,136 @@ public class WhatsAppWebhookController : ControllerBase
         return Ok(resultado);
     }
 
+    // Herramienta de pruebas: ejecuta exactamente el mismo pipeline que el webhook real
+    // (ProcesarPayloadAsync -> WhatsAppMessageHandler -> IA) sin duplicar lógica.
+    // ?send=false (default): procesa todo pero NO envía la respuesta por WhatsApp.
+    // ?send=true: flujo idéntico al webhook real, incluida la respuesta por WhatsApp.
+    // Protegido por X-Api-Key (no está exceptuado en ApiKeyMiddleware).
+    [HttpPost("simular-webhook")]
+    public async Task<IActionResult> SimularWebhook(
+        [FromBody] JsonDocument payload,
+        [FromQuery] bool send,
+        [FromServices] IWebHostEnvironment environment,
+        CancellationToken cancellationToken)
+    {
+        var total = Stopwatch.StartNew();
+        _logger.LogInformation("SIMULACION: inicio (send={Send}).", send);
+
+        try
+        {
+            var entradas = await ProcesarPayloadAsync(payload, enviarRespuesta: send, origen: "simulado", cancellationToken);
+            total.Stop();
+
+            var primera = entradas.FirstOrDefault();
+            var errores = entradas
+                .Where(e => !string.IsNullOrWhiteSpace(e.Error))
+                .Select(e => e.Error!)
+                .ToList();
+
+            _logger.LogInformation(
+                "SIMULACION: fin. Mensajes procesados: {Cantidad}, EnvioWhatsapp: {Send}, Duración: {Duracion} ms.",
+                entradas.Count, send, total.ElapsedMilliseconds);
+
+            return Ok(new
+            {
+                procesado = entradas.Count > 0 && entradas.All(e => e.Exito),
+                mensajeRecibido = primera?.TextoEntrante,
+                intencionDetectada = primera?.Intent,
+                respuestaIA = primera?.Respuesta,
+                movimientoCreado = primera?.MovimientoId is not null,
+                movimientoId = primera?.MovimientoId,
+                usuarioId = primera?.UsuarioId,
+                envioWhatsapp = send,
+                mensajesProcesados = entradas.Count,
+                duracionMs = total.ElapsedMilliseconds,
+                errores
+            });
+        }
+        catch (Exception ex)
+        {
+            total.Stop();
+            _logger.LogError(ex, "SIMULACION: falló con excepción tras {Duracion} ms.", total.ElapsedMilliseconds);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                procesado = false,
+                error = ex.Message,
+                stackTrace = environment.IsDevelopment() ? ex.StackTrace : null
+            });
+        }
+    }
+
     [HttpPost("webhook")]
     public async Task<IActionResult> ReceiveWebhook([FromBody] JsonDocument payload, CancellationToken cancellationToken)
     {
+        // El webhook real de Meta siempre envía la respuesta por WhatsApp y
+        // siempre devuelve 200 para evitar reintentos de Meta.
+        await ProcesarPayloadAsync(payload, enviarRespuesta: true, origen: "webhook", cancellationToken);
+        return Ok();
+    }
+
+    /// <summary>
+    /// Pipeline único de procesamiento del payload de Meta (entry -> changes -> value -> messages).
+    /// Lo comparten el webhook real y el simulador; <paramref name="enviarRespuesta"/> controla
+    /// si WhatsAppMessageHandler debe llamar a EnviarRespuestaAsync.
+    /// </summary>
+    private async Task<List<WhatsAppDiagnosticEntry>> ProcesarPayloadAsync(
+        JsonDocument payload,
+        bool enviarRespuesta,
+        string origen,
+        CancellationToken cancellationToken)
+    {
+        var entradas = new List<WhatsAppDiagnosticEntry>();
         var root = payload.RootElement;
         var payloadJson = root.GetRawText();
-        _logger.LogInformation("Webhook recibido. Payload: {Payload}", payloadJson);
+        _logger.LogInformation("Webhook recibido ({Origen}). Payload: {Payload}", origen, payloadJson);
+
+        // Cuenta cuántos 'messages' y 'statuses' trae el payload, antes de cualquier procesamiento.
+        var totalMessages = 0;
+        var totalStatuses = 0;
+        if (root.TryGetProperty("entry", out var entriesDiag) && entriesDiag.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var entryDiag in entriesDiag.EnumerateArray())
+            {
+                if (!entryDiag.TryGetProperty("changes", out var changesDiag) || changesDiag.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var changeDiag in changesDiag.EnumerateArray())
+                {
+                    if (!changeDiag.TryGetProperty("value", out var valueDiag))
+                    {
+                        continue;
+                    }
+
+                    if (valueDiag.TryGetProperty("messages", out var m) && m.ValueKind == JsonValueKind.Array)
+                    {
+                        totalMessages += m.GetArrayLength();
+                    }
+
+                    if (valueDiag.TryGetProperty("statuses", out var s) && s.ValueKind == JsonValueKind.Array)
+                    {
+                        totalStatuses += s.GetArrayLength();
+                    }
+                }
+            }
+        }
+
+        _logger.LogInformation("Webhook recibido: messages={Messages}, statuses={Statuses}", totalMessages, totalStatuses);
+
+        // Los eventos de estado (enviado/entregado/leído) no requieren procesamiento de IA:
+        // se registran y se responde 200 para que Meta no reintente.
+        if (totalMessages == 0 && totalStatuses > 0)
+        {
+            _logger.LogInformation("Evento de estado recibido. No requiere procesamiento.");
+            return entradas;
+        }
 
         if (!root.TryGetProperty("entry", out var entries) || entries.ValueKind != JsonValueKind.Array)
         {
             _logger.LogWarning("Webhook descartado: el payload no contiene 'entry'.");
-            return Ok();
+            return entradas;
         }
 
         foreach (var entry in entries.EnumerateArray())
@@ -210,19 +329,29 @@ public class WhatsAppWebhookController : ControllerBase
                         from,
                         incomingText);
 
+                    // TODO: Log temporal de diagnóstico. Eliminar al terminar las pruebas.
+                    _logger.LogInformation(
+                        "PRE-RESPUESTA -> from: {From} | message.Id: {MessageId} | message.Text.Body: {Body} | messages[0] JSON: {MessageJson}",
+                        from,
+                        message.TryGetProperty("id", out var idNode) ? idNode.GetString() : "(sin id)",
+                        incomingText,
+                        message.GetRawText());
+
                     // Un fallo procesando un mensaje nunca debe abortar el batch ni
                     // devolver error al webhook (Meta reintentaría el payload completo).
-                    await _messageHandler.ProcesarAsync(
+                    var entrada = await _messageHandler.ProcesarAsync(
                         from, incomingText, imageId,
-                        origen: "webhook",
+                        origen: origen,
                         payloadJson: payloadJson,
-                        enviarRespuesta: true,
+                        enviarRespuesta: enviarRespuesta,
                         cancellationToken: cancellationToken);
+
+                    entradas.Add(entrada);
                 }
             }
         }
 
-        return Ok();
+        return entradas;
     }
 
     [HttpPost("send-test")]

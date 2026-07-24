@@ -21,4 +21,8 @@
     <ProjectReference Include="..\FinanzasIA.Application\FinanzasIA.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Payloads\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
