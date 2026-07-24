@@ -1,0 +1,11 @@
+@page "/presupuesto"
+@inject NavigationManager Navigation
+
+@* Ruta antigua: redirige a la nueva página de administración de presupuestos. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo("/presupuestos", replace: true);
+    }
+}

@@ -2,6 +2,7 @@
 @inject FinanzasApiClient ApiClient
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@inject ILogger<FinanzasIaChat> Logger
 
 <div class="asistente-layout">
 
@@ -276,8 +277,11 @@
 
     private async Task EnviarAsync(string pregunta)
     {
+        Logger.LogInformation("FinanzasIaChat.EnviarAsync invocado con pregunta: {Pregunta}", pregunta);
+
         if (string.IsNullOrWhiteSpace(pregunta) || _isThinking)
         {
+            Logger.LogWarning("EnviarAsync abortado: pregunta vacía o el asistente ya está pensando (_isThinking={IsThinking}).", _isThinking);
             return;
         }
 
@@ -315,8 +319,9 @@
 
             await GuardarConversacionAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Error al consultar el asistente de Finanzas IA. Pregunta: {Pregunta}", texto);
             _textoStreaming = string.Empty;
             _mensajes.Add(new ChatMensaje("Ups, no pude responder en este momento. Verificá tu conexión e intentá de nuevo. 🙏", false, DateTime.Now));
         }
