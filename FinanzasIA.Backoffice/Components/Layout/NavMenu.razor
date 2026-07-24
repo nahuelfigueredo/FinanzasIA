@@ -1,98 +1,92 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid brand-row">
-        <a class="navbar-brand" href="">
-            <img class="brand-icon" src="brand-icon.svg" alt="" aria-hidden="true" />
-            <span>Finanzas IA</span>
+﻿<div class="fx-sidebar">
+    <div class="fx-sidebar-brand">
+        <a href="" style="text-decoration:none; display:flex; flex-direction:column; align-items:center; gap:.4rem;">
+            <img src="brand-icon.svg" alt="FinanzasIA" />
+            <span class="fx-brand-name">FINANZAS IA</span>
         </a>
-        <div class="brand-actions">
-            <NotificationsBell />
-            <ThemeToggle />
-        </div>
+        <span class="fx-brand-tag">Tu asistente financiero inteligente</span>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Inicio
-            </NavLink>
-        </div>
+    <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+        <nav class="nav flex-column">
+            <div class="nav-item">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <i class="bi bi-house-door" aria-hidden="true"></i> <span class="fx-nav-text">Inicio</span>
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="movimientos">
-                <span class="bi bi-cash-stack-nav-menu" aria-hidden="true"></span> Movimientos
-            </NavLink>
-        </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="movimientos">
+                    <i class="bi bi-credit-card" aria-hidden="true"></i> <span class="fx-nav-text">Movimientos</span>
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="presupuestos">
-                <span class="bi bi-bullseye-nav-menu" aria-hidden="true"></span> Presupuestos
-            </NavLink>
-        </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="categorias">
+                    <i class="bi bi-folder2-open" aria-hidden="true"></i> <span class="fx-nav-text">Categorías</span>
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <details class="nav-submenu" onclick="event.stopPropagation()">
-                <summary class="nav-link">
-                    <span class="bi bi-calendar-report-nav-menu" aria-hidden="true"></span> Reportes
-                </summary>
-                <div class="nav-submenu-items">
-                    <NavLink class="nav-link nav-sublink" href="reporte-mensual">Mensual</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/semanal">Semanal</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/anual">Anual</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/por-categorias">Por categorías</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/por-cuentas">Por cuentas</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/comparativas">Comparativas</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/exportar-pdf">Exportar PDF</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="reportes/exportar-excel">Exportar Excel</NavLink>
-                </div>
-            </details>
-        </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="presupuestos">
+                    <i class="bi bi-bullseye" aria-hidden="true"></i> <span class="fx-nav-text">Presupuestos</span>
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="finanzas-ia">
-                <span class="bi bi-chat-dots-nav-menu" aria-hidden="true"></span> Finanzas IA
-            </NavLink>
-        </div>
+            <div class="nav-item">
+                <NavLink class="nav-link" href="finanzas-ia">
+                    <i class="bi bi-robot" aria-hidden="true"></i> <span class="fx-nav-text">Finanzas IA</span>
+                </NavLink>
+            </div>
 
-        <div class="nav-item px-3">
-            <details class="nav-submenu" onclick="event.stopPropagation()">
-                <summary class="nav-link">
-                    <span class="bi bi-gear-nav-menu" aria-hidden="true"></span> Configuración
-                </summary>
-                <div class="nav-submenu-items">
-                    <NavLink class="nav-link nav-sublink" href="configuracion">Preferencias</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="categorias">Categorías</NavLink>
-                    <NavLink class="nav-link nav-sublink" href="cuentas">Cuentas</NavLink>
-                </div>
-            </details>
-        </div>
-    </nav>
-</div>
+            <div class="nav-item">
+                <details class="nav-submenu" onclick="event.stopPropagation()">
+                    <summary class="nav-link">
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i> <span class="fx-nav-text">Reportes</span>
+                    </summary>
+                    <div class="nav-submenu-items">
+                        <NavLink class="nav-link nav-sublink" href="reporte-mensual">Mensual</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/semanal">Semanal</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/anual">Anual</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/por-categorias">Por categorías</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/por-cuentas">Por cuentas</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/comparativas">Comparativas</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/exportar-pdf">Exportar PDF</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="reportes/exportar-excel">Exportar Excel</NavLink>
+                    </div>
+                </details>
+            </div>
 
-<AuthorizeView>
-    <Authorized>
-        <div class="nav-user-footer">
-            <div class="nav-user-card">
-                <div class="nav-user-avatar" aria-hidden="true">
-                    @GetInitials(context.User.Identity?.Name)
-                </div>
-                <div class="nav-user-info">
-                    <span class="nav-user-name">@GetDisplayName(context.User.Identity?.Name)</span>
-                    <span class="nav-user-email">@(context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? context.User.Identity?.Name)</span>
-                </div>
-                <form action="/logout" method="post" class="nav-logout-form">
+            <div class="nav-item">
+                <details class="nav-submenu" onclick="event.stopPropagation()">
+                    <summary class="nav-link">
+                        <i class="bi bi-gear" aria-hidden="true"></i> <span class="fx-nav-text">Configuración</span>
+                    </summary>
+                    <div class="nav-submenu-items">
+                        <NavLink class="nav-link nav-sublink" href="configuracion">Preferencias</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="categorias">Categorías</NavLink>
+                        <NavLink class="nav-link nav-sublink" href="cuentas">Cuentas</NavLink>
+                    </div>
+                </details>
+            </div>
+        </nav>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="fx-logout">
+                <form action="/logout" method="post">
                     <AntiforgeryToken />
-                    <button type="submit" class="nav-logout-btn" title="Cerrar sesión">
-                        <span class="bi bi-arrow-bar-left" aria-hidden="true"></span>
+                    <button type="submit" class="nav-link" style="width:100%; background:none; border:none; cursor:pointer;" title="Cerrar sesión">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i> <span class="fx-nav-text">Cerrar sesión</span>
                     </button>
                 </form>
             </div>
-        </div>
-    </Authorized>
-</AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+</div>
 
 @code {
     private static string GetInitials(string? name)

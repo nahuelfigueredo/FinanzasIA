@@ -1,0 +1,31 @@
+@* Stat card premium para el dashboard: icono, título, valor, variación y mini gráfico. *@
+
+<div class="fx-stat-card @Variant">
+    <div class="fx-stat-icon"><i class="bi @Icon"></i></div>
+    <div class="fx-stat-title">@Title</div>
+    <div class="fx-stat-value">@Value</div>
+    @if (!string.IsNullOrWhiteSpace(Delta))
+    {
+        <span class="fx-stat-delta @(DeltaUp ? "up" : "down")">
+            <i class="bi @(DeltaUp ? "bi-arrow-up-right" : "bi-arrow-down-right")"></i> @Delta
+        </span>
+    }
+    <div class="fx-stat-spark" aria-hidden="true">
+        @foreach (var h in _sparkHeights)
+        {
+            <i style="height:@(h)px"></i>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "bi-wallet2";
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string? Delta { get; set; }
+    [Parameter] public bool DeltaUp { get; set; } = true;
+    /// <summary>Variante visual: "" (azul), success, danger, warning.</summary>
+    [Parameter] public string Variant { get; set; } = string.Empty;
+
+    private static readonly int[] _sparkHeights = [12, 20, 15, 26, 18, 30, 24];
+}

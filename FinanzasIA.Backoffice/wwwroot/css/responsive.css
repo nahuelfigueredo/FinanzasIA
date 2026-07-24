@@ -1,0 +1,62 @@
+/* ============================================================
+   FinanzasIA — responsive.css
+   Desktop / Tablet / Celular. Sidebar colapsable, cards adaptables.
+   ============================================================ */
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1024px) {
+    .fx-sidebar { width: 220px; }
+    .fx-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .fx-widgets-grid { grid-template-columns: 1fr; }
+    .fx-topbar-date { display: none; }
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 768px) {
+    .fx-shell { flex-direction: column; }
+
+    .fx-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        margin: 0;
+        border-radius: 0 18px 18px 0;
+        transform: translateX(-100%);
+        transition: transform 300ms ease;
+        max-height: 100vh;
+        z-index: 200;
+    }
+    .fx-sidebar.open { transform: translateX(0); }
+
+    .fx-main { padding: 0.75rem; }
+    .fx-topbar { flex-wrap: wrap; gap: 0.6rem; top: 0.4rem; }
+    .fx-topbar-search { max-width: none; order: 3; flex-basis: 100%; }
+    .fx-topbar-username { display: none; }
+
+    .fx-stats-grid { grid-template-columns: 1fr; }
+    .budget-cards { grid-template-columns: 1fr; }
+
+    .asistente-layout { flex-direction: column; }
+    .asistente-historial { max-height: 200px; }
+    .asistente-burbuja { max-width: 92%; }
+
+    .fx-login-card { padding: 1.8rem 1.4rem; }
+
+    /* Backdrop del sidebar móvil */
+    .fx-sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 150;
+        animation: fx-fade-in 300ms ease both;
+    }
+}
+
+/* ---------- Preferencia de movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -1,0 +1,199 @@
+/* ============================================================
+   FinanzasIA — components.css
+   Componentes reutilizables: cards glass, botones, inputs,
+   modales, tablas, badges, alerts, progreso.
+   ============================================================ */
+
+/* ---------- GlassCard ---------- */
+.glass-card,
+.card,
+.dashboard-panel {
+    background: var(--fx-card) !important;
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border) !important;
+    border-radius: var(--fx-radius) !important;
+    box-shadow: var(--fx-shadow);
+    color: var(--fx-text);
+    transition: var(--fx-transition);
+    animation: fx-slide-up 300ms ease both;
+}
+
+.glass-card:hover,
+.card:hover,
+.dashboard-panel:hover {
+    border-color: rgba(56, 189, 248, 0.35) !important;
+    box-shadow: 0 18px 55px rgba(37, 99, 235, 0.25);
+    transform: translateY(-3px);
+}
+
+/* ---------- GlassButton ---------- */
+.btn {
+    border-radius: var(--fx-radius-sm) !important;
+    font-weight: 600;
+    transition: var(--fx-transition);
+    position: relative;
+    overflow: hidden;
+}
+.btn-primary, .glass-btn {
+    background: linear-gradient(135deg, var(--fx-primary), var(--fx-accent)) !important;
+    border: none !important;
+    color: #fff !important;
+    box-shadow: 0 6px 22px rgba(37, 99, 235, 0.45);
+}
+.btn-primary:hover:not(:disabled), .glass-btn:hover:not(:disabled) {
+    box-shadow: 0 8px 30px rgba(124, 58, 237, 0.6);
+    transform: translateY(-1px) scale(1.02);
+}
+.btn-primary:active::after, .glass-btn:active::after {
+    /* Efecto ripple */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%);
+    animation: fx-fade-in 300ms ease reverse both;
+}
+.btn-outline-secondary {
+    border-color: var(--fx-border) !important;
+    color: var(--fx-text-2) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+.btn-outline-secondary:hover { background: rgba(56, 189, 248, 0.15) !important; color: #fff !important; }
+.btn-outline-danger {
+    border-color: rgba(239, 68, 68, 0.4) !important;
+    color: #FCA5A5 !important;
+    background: rgba(239, 68, 68, 0.06) !important;
+}
+.btn-outline-danger:hover { background: rgba(239, 68, 68, 0.22) !important; color: #fff !important; }
+
+/* Botón circular (enviar chat) */
+.fx-btn-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50% !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* ---------- GlassInput ---------- */
+.form-control, .form-select, .glass-input {
+    background: rgba(7, 17, 31, 0.65) !important;
+    border: 1px solid var(--fx-border) !important;
+    border-radius: var(--fx-radius-sm) !important;
+    color: var(--fx-text) !important;
+    transition: var(--fx-transition);
+}
+.form-control::placeholder { color: rgba(197, 211, 227, 0.45); }
+.form-control:focus, .form-select:focus, .glass-input:focus {
+    border-color: var(--fx-secondary) !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22) !important;
+    background: rgba(7, 17, 31, 0.85) !important;
+}
+.form-label, label { color: var(--fx-text-2); font-weight: 500; }
+.form-check-input {
+    background-color: rgba(7, 17, 31, 0.65);
+    border-color: var(--fx-border);
+}
+.form-check-input:checked { background-color: var(--fx-primary); border-color: var(--fx-primary); }
+
+/* ---------- GlassModal ---------- */
+.modal-content, .glass-modal {
+    background: var(--fx-card-strong);
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border);
+    border-radius: var(--fx-radius);
+    color: var(--fx-text);
+    box-shadow: var(--fx-shadow);
+    animation: fx-scale-in 300ms ease both;
+}
+.modal-header, .modal-footer { border-color: var(--fx-border); }
+
+/* ---------- GlassTable ---------- */
+.table, .glass-table {
+    --bs-table-bg: transparent;
+    color: var(--fx-text);
+    border-color: var(--fx-border);
+}
+.table > :not(caption) > * > * {
+    background: transparent;
+    color: var(--fx-text);
+    border-bottom-color: var(--fx-border);
+}
+.table thead th {
+    color: var(--fx-text-2);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+}
+.table tbody tr { transition: var(--fx-transition); }
+.table tbody tr:hover > * { background: rgba(56, 189, 248, 0.06); }
+
+/* ---------- Alerts ---------- */
+.alert {
+    border-radius: var(--fx-radius);
+    border: 1px solid var(--fx-border);
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    animation: fx-slide-up 300ms ease both;
+}
+.alert-warning { background: rgba(250, 204, 21, 0.1);  color: #FDE68A; border-color: rgba(250, 204, 21, 0.3); }
+.alert-success { background: rgba(34, 197, 94, 0.1);   color: #86EFAC; border-color: rgba(34, 197, 94, 0.3); }
+.alert-danger  { background: rgba(239, 68, 68, 0.1);   color: #FCA5A5; border-color: rgba(239, 68, 68, 0.3); }
+.alert-info    { background: rgba(56, 189, 248, 0.1);  color: #7DD3FC; border-color: rgba(56, 189, 248, 0.3); }
+
+/* ---------- Badges ---------- */
+.badge { border-radius: 999px; font-weight: 600; }
+
+/* ---------- Progress ---------- */
+.progress {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    height: 10px;
+}
+.progress-bar { border-radius: 999px; transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* ---------- SectionHeader ---------- */
+.fx-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.fx-section-header .fx-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--fx-text);
+    margin: 0;
+}
+.fx-section-header .fx-section-title i { color: var(--fx-secondary); }
+
+/* ---------- Page heading ---------- */
+.page-heading h1 {
+    background: linear-gradient(135deg, #FFFFFF, var(--fx-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.page-heading p { color: var(--fx-text-2); }
+
+/* ---------- Dropdowns ---------- */
+.dropdown-menu {
+    background: var(--fx-card-strong);
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border);
+    border-radius: var(--fx-radius-sm);
+}
+.dropdown-item { color: var(--fx-text-2); transition: var(--fx-transition); }
+.dropdown-item:hover { background: rgba(56, 189, 248, 0.12); color: #fff; }

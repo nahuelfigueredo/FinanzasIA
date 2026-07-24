@@ -1,0 +1,10 @@
+@* Tarjeta glass reutilizable. *@
+
+<div class="glass-card @CssClass">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string CssClass { get; set; } = string.Empty;
+}

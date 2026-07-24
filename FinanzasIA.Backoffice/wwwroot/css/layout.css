@@ -1,0 +1,119 @@
+/* ============================================================
+   FinanzasIA — layout.css
+   MainLayout: Sidebar + TopBar + Content flotando sobre el fondo.
+   ============================================================ */
+
+.fx-shell {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+}
+
+.fx-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 1rem 1.4rem 1.6rem;
+    gap: 1rem;
+}
+
+.fx-content {
+    flex: 1;
+    animation: fx-fade-in 300ms ease both;
+}
+
+/* ---------- TopBar ---------- */
+.fx-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1.1rem;
+    background: var(--fx-card);
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border);
+    border-radius: var(--fx-radius);
+    box-shadow: var(--fx-shadow);
+    position: sticky;
+    top: 0.75rem;
+    z-index: 50;
+}
+
+.fx-topbar-search {
+    flex: 1;
+    max-width: 420px;
+    position: relative;
+}
+.fx-topbar-search i {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fx-text-2);
+    pointer-events: none;
+}
+.fx-topbar-search input {
+    width: 100%;
+    padding: 0.5rem 0.9rem 0.5rem 2.4rem;
+    background: rgba(7, 17, 31, 0.6);
+    border: 1px solid var(--fx-border);
+    border-radius: 999px;
+    color: var(--fx-text);
+    transition: var(--fx-transition);
+}
+.fx-topbar-search input:focus {
+    outline: none;
+    border-color: var(--fx-secondary);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.fx-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-left: auto;
+}
+
+.fx-topbar-date {
+    color: var(--fx-text-2);
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.fx-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--fx-border);
+    border-radius: 999px;
+    transition: var(--fx-transition);
+}
+.fx-topbar-user:hover { border-color: rgba(56, 189, 248, 0.4); }
+
+.fx-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--fx-primary), var(--fx-accent));
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.5);
+    flex-shrink: 0;
+}
+
+.fx-topbar-username {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--fx-text);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

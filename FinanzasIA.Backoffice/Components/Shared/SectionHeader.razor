@@ -1,0 +1,21 @@
+@* Encabezado de sección reutilizable con icono y acciones opcionales. *@
+
+<div class="fx-section-header">
+    <h4 class="fx-section-title">
+        @if (!string.IsNullOrWhiteSpace(Icon))
+        {
+            <i class="bi @Icon" aria-hidden="true"></i>
+        }
+        @Title
+    </h4>
+    @if (Actions is not null)
+    {
+        <div class="fx-section-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

@@ -1,0 +1,193 @@
+/* ============================================================
+   FinanzasIA — chat.css
+   Chat IA estilo ChatGPT: burbujas, avatares, typing, input.
+   ============================================================ */
+
+.asistente-layout { gap: 1rem; }
+
+/* Panel del chat */
+.asistente-chat {
+    background: var(--fx-card) !important;
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border) !important;
+    border-radius: var(--fx-radius) !important;
+}
+
+/* Historial (panel izquierdo) */
+.asistente-historial {
+    background: var(--fx-card-strong) !important;
+    -webkit-backdrop-filter: var(--fx-blur);
+    backdrop-filter: var(--fx-blur);
+    border: 1px solid var(--fx-border) !important;
+    border-radius: var(--fx-radius) !important;
+}
+.asistente-historial-item {
+    border-radius: var(--fx-radius-sm);
+    transition: var(--fx-transition);
+}
+.asistente-historial-item:hover { background: rgba(56, 189, 248, 0.08); }
+.asistente-historial-item.activa { background: rgba(37, 99, 235, 0.22); box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.25); }
+.asistente-historial-titulo { color: var(--fx-text-2); }
+.asistente-historial-item.activa .asistente-historial-titulo { color: #fff; }
+
+/* Mensajes con scroll suave */
+.asistente-mensajes {
+    scroll-behavior: smooth;
+    padding: 1.25rem;
+}
+
+/* ---------- Burbujas ---------- */
+.asistente-burbuja {
+    max-width: 78%;
+    padding: 0.85rem 1.1rem;
+    border-radius: 18px;
+    margin-bottom: 0.95rem;
+    animation: fx-slide-up 300ms ease both;
+    position: relative;
+    line-height: 1.55;
+}
+
+/* Usuario */
+.asistente-burbuja.usuario {
+    margin-left: auto;
+    background: linear-gradient(135deg, var(--fx-primary), var(--fx-accent));
+    color: #fff;
+    border-bottom-right-radius: 6px;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    padding-right: 3.2rem;
+}
+/* Avatar usuario */
+.asistente-burbuja.usuario::after {
+    content: "👤";
+    position: absolute;
+    right: 0.7rem;
+    top: 0.7rem;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Bot / IA */
+.asistente-burbuja.bot {
+    margin-right: auto;
+    background: rgba(12, 18, 36, 0.85);
+    border: 1px solid var(--fx-border);
+    color: var(--fx-text);
+    border-bottom-left-radius: 6px;
+    padding-left: 3.2rem;
+}
+/* Avatar IA */
+.asistente-burbuja.bot::before {
+    content: "🤖";
+    position: absolute;
+    left: 0.7rem;
+    top: 0.7rem;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(124, 58, 237, 0.35));
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+.asistente-hora { font-size: 0.68rem; color: var(--fx-text-2); margin-top: 0.4rem; opacity: 0.8; }
+
+/* ---------- Animación "escribiendo" ---------- */
+.asistente-puntos::after {
+    content: "";
+    display: inline-block;
+    width: 1.3em;
+    text-align: left;
+    animation: fx-typing 1.2s steps(4) infinite;
+}
+@keyframes fx-typing {
+    0%   { content: ""; }
+    25%  { content: "."; }
+    50%  { content: ".."; }
+    75%  { content: "..."; }
+}
+.asistente-cursor { animation: fx-blink 0.9s step-end infinite; color: var(--fx-secondary); }
+@keyframes fx-blink { 50% { opacity: 0; } }
+
+/* ---------- Chips de preguntas rápidas ---------- */
+.asistente-rapidas { padding: 0.6rem 1rem; display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.asistente-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--fx-border);
+    color: var(--fx-text-2);
+    border-radius: 999px;
+    padding: 0.4rem 0.95rem;
+    font-size: 0.82rem;
+    transition: var(--fx-transition);
+    cursor: pointer;
+}
+.asistente-chip:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(124, 58, 237, 0.28));
+    border-color: var(--fx-secondary);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.25);
+}
+
+/* ---------- Input moderno ---------- */
+.asistente-input {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid var(--fx-border);
+    align-items: center;
+}
+.asistente-input .form-control {
+    border-radius: 999px !important;
+    padding: 0.6rem 1.2rem;
+}
+.asistente-input .btn-primary {
+    border-radius: 50% !important;
+    width: 44px;
+    height: 44px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Badge de acción ejecutada */
+.asistente-badge {
+    background: rgba(34, 197, 94, 0.14);
+    color: #86EFAC;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.65rem;
+    display: inline-block;
+    margin-top: 0.4rem;
+}
+
+/* Estado vacío */
+.asistente-vacio { text-align: center; padding: 2.5rem 1rem; color: var(--fx-text-2); }
+.asistente-vacio-icono {
+    font-size: 2.6rem;
+    display: inline-flex;
+    width: 74px;
+    height: 74px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(124, 58, 237, 0.25));
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 26px rgba(56, 189, 248, 0.3);
+    margin-bottom: 0.9rem;
+    animation: fx-glow-pulse 3.5s ease-in-out infinite;
+}

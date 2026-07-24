@@ -1,0 +1,28 @@
+@* Barra superior: buscador, notificaciones, tema, avatar, nombre y fecha. Solo UI. *@
+@rendermode InteractiveServer
+
+<header class="fx-topbar">
+    <div class="fx-topbar-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" placeholder="Buscar..." aria-label="Buscar" />
+    </div>
+
+    <div class="fx-topbar-right">
+        <span class="fx-topbar-date">📅 @DateTime.Now.ToString("dddd d 'de' MMMM yyyy", new System.Globalization.CultureInfo("es-AR"))</span>
+        <ThemeToggle />
+        <NotificationsBell />
+        <AuthorizeView>
+            <Authorized>
+                <div class="fx-topbar-user" title="@context.User.Identity?.Name">
+                    <span class="fx-avatar">@Inicial(context.User.Identity?.Name)</span>
+                    <span class="fx-topbar-username">@context.User.Identity?.Name</span>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</header>
+
+@code {
+    private static string Inicial(string? nombre) =>
+        string.IsNullOrWhiteSpace(nombre) ? "?" : nombre.Trim()[..1].ToUpperInvariant();
+}

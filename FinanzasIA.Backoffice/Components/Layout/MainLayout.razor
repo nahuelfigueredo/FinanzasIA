@@ -1,12 +1,15 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
+<BackgroundLayout />
+
+<div class="fx-shell">
     <div class="sidebar">
         <NavMenu />
     </div>
 
-    <main>
-        <article class="content px-4">
+    <main class="fx-main">
+        <TopBar />
+        <article class="fx-content content px-2">
             <InstallAppPrompt />
             @Body
         </article>
