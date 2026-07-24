@@ -22,7 +22,8 @@ public enum MessageIntent
     GastosHoy = 10,
     GastosMes = 11,
     IngresosMes = 12,
-    UltimosMovimientos = 13
+    UltimosMovimientos = 13,
+    DefinirPresupuesto = 14
 }
 
 /// <summary>Canal de origen de un mensaje entrante.</summary>

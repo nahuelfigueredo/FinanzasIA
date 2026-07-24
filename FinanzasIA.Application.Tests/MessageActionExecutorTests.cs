@@ -11,9 +11,10 @@ public class MessageActionExecutorTests
     private readonly FakeCategoriaService _categorias = new();
     private readonly FakeCuentaService _cuentas = new();
     private readonly FakeAnalisisFinancieroService _analisis = new();
+    private readonly FakePresupuestoService _presupuestos = new();
 
     private MessageActionExecutor CrearExecutor() =>
-        new(_movimientos, _categorias, _cuentas, _analisis);
+        new(_movimientos, _categorias, _cuentas, _analisis, _presupuestos);
 
     [Fact]
     public async Task EjecutarAsync_RegistraGastoYCreaCategoriaSiNoExiste()

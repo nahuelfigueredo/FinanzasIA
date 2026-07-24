@@ -24,10 +24,11 @@ public class MessageProcessorPipelineTests
     private readonly FakeAnalisisFinancieroService _analisis = new();
     private readonly FakeAsistenteIAProvider _ia = new();
     private readonly FakeMensajeProcesadoRepository _historial = new();
+    private readonly FakePresupuestoService _presupuestos = new();
 
     private MessageProcessor CrearProcessor()
     {
-        var executor = new MessageActionExecutor(_movimientos, _categorias, _cuentas, _analisis);
+        var executor = new MessageActionExecutor(_movimientos, _categorias, _cuentas, _analisis, _presupuestos);
         return new MessageProcessor(
             new RuleBasedMessageInterpreter(),
             new MensajeFinancieroParser(),

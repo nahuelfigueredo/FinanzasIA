@@ -96,6 +96,43 @@ public class FinanzasApiClient
         public string? Message { get; set; }
     }
 
+    public async Task<IReadOnlyCollection<PresupuestoDto>> GetPresupuestosAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var presupuestos = await _httpClient.GetFromJsonAsync<List<PresupuestoDto>>("api/presupuestos", cancellationToken);
+        return presupuestos ?? [];
+    }
+
+    public async Task<IReadOnlyCollection<PresupuestoEstadoDto>> GetEstadoPresupuestosAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var estados = await _httpClient.GetFromJsonAsync<List<PresupuestoEstadoDto>>("api/presupuestos/estado", cancellationToken);
+        return estados ?? [];
+    }
+
+    public async Task<PresupuestoDto> CreatePresupuestoAsync(CreatePresupuestoDto dto, CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var response = await _httpClient.PostAsJsonAsync("api/presupuestos", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<PresupuestoDto>(cancellationToken))!;
+    }
+
+    public async Task<PresupuestoDto> UpdatePresupuestoAsync(int id, UpdatePresupuestoDto dto, CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var response = await _httpClient.PutAsJsonAsync($"api/presupuestos/{id}", dto, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<PresupuestoDto>(cancellationToken))!;
+    }
+
+    public async Task DeletePresupuestoAsync(int id, CancellationToken cancellationToken = default)
+    {
+        await EnsureUserHeaderAsync();
+        var response = await _httpClient.DeleteAsync($"api/presupuestos/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<IReadOnlyCollection<MovimientoDto>> GetMovimientosAsync(CancellationToken cancellationToken = default)
     {
         await EnsureUserHeaderAsync();

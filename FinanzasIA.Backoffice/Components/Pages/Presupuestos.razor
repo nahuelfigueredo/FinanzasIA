@@ -1,0 +1,305 @@
+@page "/presupuestos"
+@rendermode InteractiveServer
+@inject FinanzasApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Presupuestos</PageTitle>
+
+<div class="page-heading">
+    <span class="page-icon" aria-hidden="true">🎯</span>
+    <div>
+        <h1>Presupuestos</h1>
+        <p>Definí un límite mensual por categoría y seguí cuánto llevás gastado.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">@_errorMessage</div>
+}
+else if (!string.IsNullOrWhiteSpace(_successMessage))
+{
+    <div class="alert alert-success" role="alert">@_successMessage</div>
+}
+
+<div class="dashboard-panel mb-4" id="presupuesto-form">
+    <h4 class="mb-3">
+        <span class="section-icon" aria-hidden="true">✨</span>
+        @(_editingId.HasValue ? "Editar presupuesto" : "Nuevo presupuesto")
+    </h4>
+    <EditForm FormName="presupuesto-form" Model="_form" OnValidSubmit="SaveAsync">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Categoría</label>
+                <InputSelect class="form-select" @bind-Value="_form.CategoriaId">
+                    <option value="0">Seleccioná una categoría...</option>
+                    @foreach (var categoria in _categoriasEgreso)
+                    {
+                        <option value="@categoria.Id">@categoria.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Monto mensual</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <InputNumber class="form-control" @bind-Value="_form.MontoMensual" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Mes</label>
+                <InputSelect class="form-select" @bind-Value="_form.Mes">
+                    @for (var m = 1; m <= 12; m++)
+                    {
+                        <option value="@m">@System.Globalization.CultureInfo.GetCultureInfo("es-AR").DateTimeFormat.GetMonthName(m)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Año</label>
+                <InputNumber class="form-control" @bind-Value="_form.Año" />
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100" disabled="@_isSaving">
+                    @(_isSaving ? "..." : _editingId.HasValue ? "Guardar" : "Crear")
+                </button>
+            </div>
+        </div>
+    </EditForm>
+    @if (_editingId.HasValue)
+    {
+        <button class="btn btn-link p-0 mt-2" @onclick="CancelEdit">Cancelar edición</button>
+    }
+</div>
+
+<div class="dashboard-panel">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h4 class="mb-0"><span class="section-icon" aria-hidden="true">📊</span> Tus presupuestos</h4>
+        <button class="btn btn-primary" type="button" @onclick="NuevoPresupuesto">＋ Nuevo</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="report-loading">
+            <div class="spinner-border text-primary" role="status"></div>
+            <span>Cargando presupuestos...</span>
+        </div>
+    }
+    else if (_estados.Count == 0)
+    {
+        <div class="empty-state">
+            <div>📭</div>
+            <strong>No tenés presupuestos este mes.</strong>
+            <span>Creá uno con el formulario de arriba o mandá por WhatsApp: "Presupuesto supermercado 350000".</span>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th class="text-end">Presupuesto</th>
+                        <th class="text-end">Gastado</th>
+                        <th class="text-end">Disponible</th>
+                        <th style="min-width:200px">Progreso</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var estado in _estados)
+                    {
+                        var presupuesto = _presupuestos.FirstOrDefault(p => p.Id == estado.PresupuestoId);
+                        <tr>
+                            <td><strong>@estado.CategoriaNombre</strong></td>
+                            <td class="text-end">@estado.MontoMensual.ToString("C")</td>
+                            <td class="text-end">@estado.GastoAcumulado.ToString("C")</td>
+                            <td class="text-end @(estado.SaldoRestante < 0 ? "text-danger fw-bold" : null)">
+                                @estado.SaldoRestante.ToString("C")
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height:10px">
+                                        <div class="progress-bar @ColorBarra(estado.PorcentajeUtilizado)"
+                                             role="progressbar"
+                                             style="width:@Math.Min((double)estado.PorcentajeUtilizado, 100)%"
+                                             aria-valuenow="@estado.PorcentajeUtilizado"
+                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <span class="small text-secondary" style="min-width:48px">@estado.PorcentajeUtilizado.ToString("0.#")%</span>
+                                </div>
+                                @if (estado.Superado)
+                                {
+                                    <span class="small text-danger">🚨 Excedido en @estado.MontoExcedido.ToString("C")</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (presupuesto is not null)
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => Editar(presupuesto)">✏️ Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarAsync(presupuesto.Id)">🗑️ Eliminar</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<PresupuestoEstadoDto> _estados = [];
+    private List<PresupuestoDto> _presupuestos = [];
+    private List<CategoriaDto> _categoriasEgreso = [];
+    private readonly FormModel _form = new();
+    private int? _editingId;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private sealed class FormModel
+    {
+        public int CategoriaId { get; set; }
+        public decimal MontoMensual { get; set; }
+        public int Mes { get; set; } = DateTime.Today.Month;
+        public int Año { get; set; } = DateTime.Today.Year;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        try
+        {
+            var categorias = await ApiClient.GetCategoriasAsync();
+            _categoriasEgreso = categorias.Where(c => c.TipoMovimiento == TipoMovimiento.Egreso).ToList();
+            _presupuestos = (await ApiClient.GetPresupuestosAsync()).ToList();
+            _estados = (await ApiClient.GetEstadoPresupuestosAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"No se pudieron cargar los presupuestos: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static string ColorBarra(decimal porcentaje) => porcentaje switch
+    {
+        >= 100 => "bg-danger",
+        >= 80 => "bg-warning",
+        _ => "bg-success"
+    };
+
+    private void NuevoPresupuesto()
+    {
+        CancelEdit();
+    }
+
+    private void Editar(PresupuestoDto presupuesto)
+    {
+        _editingId = presupuesto.Id;
+        _form.CategoriaId = presupuesto.CategoriaId;
+        _form.MontoMensual = presupuesto.MontoMensual;
+        _form.Mes = presupuesto.Mes;
+        _form.Año = presupuesto.Año;
+        _successMessage = null;
+        _errorMessage = null;
+    }
+
+    private void CancelEdit()
+    {
+        _editingId = null;
+        _form.CategoriaId = 0;
+        _form.MontoMensual = 0;
+        _form.Mes = DateTime.Today.Month;
+        _form.Año = DateTime.Today.Year;
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        if (_form.CategoriaId <= 0)
+        {
+            _errorMessage = "Seleccioná una categoría.";
+            return;
+        }
+
+        if (_form.MontoMensual <= 0)
+        {
+            _errorMessage = "El monto mensual debe ser mayor a cero.";
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            if (_editingId.HasValue)
+            {
+                await ApiClient.UpdatePresupuestoAsync(_editingId.Value, new UpdatePresupuestoDto
+                {
+                    CategoriaId = _form.CategoriaId,
+                    MontoMensual = _form.MontoMensual,
+                    Mes = _form.Mes,
+                    Año = _form.Año,
+                    Activo = true
+                });
+                _successMessage = "Presupuesto actualizado correctamente.";
+            }
+            else
+            {
+                await ApiClient.CreatePresupuestoAsync(new CreatePresupuestoDto
+                {
+                    CategoriaId = _form.CategoriaId,
+                    MontoMensual = _form.MontoMensual,
+                    Mes = _form.Mes,
+                    Año = _form.Año
+                });
+                _successMessage = "Presupuesto creado correctamente.";
+            }
+
+            CancelEdit();
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"No se pudo guardar el presupuesto: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task EliminarAsync(int id)
+    {
+        var confirmado = await JSRuntime.InvokeAsync<bool>("confirm", "¿Eliminar este presupuesto?");
+        if (!confirmado)
+        {
+            return;
+        }
+
+        try
+        {
+            await ApiClient.DeletePresupuestoAsync(id);
+            _successMessage = "Presupuesto eliminado.";
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"No se pudo eliminar el presupuesto: {ex.Message}";
+        }
+    }
+}

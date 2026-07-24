@@ -25,6 +25,8 @@ public class FinanzasDbContext : DbContext
 
     public DbSet<ConfiguracionAutomatizacion> ConfiguracionesAutomatizacion => Set<ConfiguracionAutomatizacion>();
 
+    public DbSet<Presupuesto> Presupuestos => Set<Presupuesto>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -134,6 +136,23 @@ public class FinanzasDbContext : DbContext
 
             entity.HasIndex(x => new { x.NumeroTelefono, x.Canal }).IsUnique();
             entity.HasIndex(x => x.UsuarioId);
+        });
+
+        modelBuilder.Entity<Presupuesto>(entity =>
+        {
+            entity.Property(x => x.UsuarioId)
+                  .HasMaxLength(450)
+                  .IsRequired();
+
+            entity.Property(x => x.MontoMensual)
+                  .HasPrecision(18, 2);
+
+            entity.HasOne(x => x.Categoria)
+                  .WithMany()
+                  .HasForeignKey(x => x.CategoriaId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new { x.UsuarioId, x.CategoriaId, x.Año, x.Mes });
         });
 
         modelBuilder.Entity<TicketPendiente>(entity =>

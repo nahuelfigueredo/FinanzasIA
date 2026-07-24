@@ -43,6 +43,8 @@ public partial class RuleBasedMessageInterpreter : IMessageInterpreter
         new(MessageIntent.ConsultaSaldo, new Regex(@"\b(saldo|balance|cuanto tengo|cuanta plata)\b", RegexOptions.Compiled)),
         new(MessageIntent.ResumenMensual, new Regex(@"\b(resumen|analisis|como vengo|como estoy)\b", RegexOptions.Compiled)),
         new(MessageIntent.ConsultaCategoria, new Regex(@"\b(categoria|rubro|en que gasto|donde gasto)\b", RegexOptions.Compiled)),
+        // Definir presupuesto antes que la consulta: "presupuesto supermercado 350000" trae monto.
+        new(MessageIntent.DefinirPresupuesto, new Regex(@"\b(?:presupuesto|gastar\s+(?:maximo|max|hasta))\b.*\d", RegexOptions.Compiled)),
         new(MessageIntent.ConsultaPresupuesto, new Regex(@"\b(presupuesto)\b", RegexOptions.Compiled)),
         new(MessageIntent.Ayuda, new Regex(@"\b(ayuda|help|comandos|que puedo)\b", RegexOptions.Compiled)),
         new(MessageIntent.Saludo, new Regex(@"\b(hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches)\b", RegexOptions.Compiled))
@@ -69,8 +71,44 @@ public partial class RuleBasedMessageInterpreter : IMessageInterpreter
         {
             ExtraerDatosMovimiento(texto, normalizado, resultado);
         }
+        else if (definicion.Intent == MessageIntent.DefinirPresupuesto)
+        {
+            ExtraerDatosPresupuesto(normalizado, resultado);
+        }
 
         return Task.FromResult(resultado);
+    }
+
+    /// <summary>
+    /// Extrae categoría y monto de frases de presupuesto:
+    /// "presupuesto supermercado 350000", "mi presupuesto para comida es 500000",
+    /// "quiero gastar maximo 200000 en combustible", "presupuesto ocio 100000".
+    /// </summary>
+    private static void ExtraerDatosPresupuesto(string normalizado, MensajeInterpretadoDto resultado)
+    {
+        var montoMatch = MontoRegex.Match(normalizado);
+        if (montoMatch.Success)
+        {
+            var entero = montoMatch.Groups[1].Value.Replace(".", string.Empty);
+            var decimales = montoMatch.Groups[2].Success ? montoMatch.Groups[2].Value : "0";
+            if (decimal.TryParse($"{entero}.{decimales}", NumberStyles.Number, CultureInfo.InvariantCulture, out var monto) && monto > 0)
+            {
+                resultado.Monto = monto;
+            }
+        }
+
+        // "presupuesto [para/de] X 350000" o "mi presupuesto para X es 350000"
+        var categoriaMatch = Regex.Match(normalizado, @"presupuesto\s+(?:para\s+|de\s+)?([a-zñ]+(?:\s+[a-zñ]+)?)\s+(?:es\s+)?\$?\d");
+        if (!categoriaMatch.Success)
+        {
+            // "quiero gastar maximo 200000 en X"
+            categoriaMatch = Regex.Match(normalizado, @"gastar\s+(?:maximo|max|hasta)\s+\$?[\d.,]+\s+en\s+([a-zñ]+(?:\s+[a-zñ]+)?)");
+        }
+
+        if (categoriaMatch.Success)
+        {
+            resultado.Categoria = categoriaMatch.Groups[1].Value.Trim();
+        }
     }
 
     /// <summary>Extrae monto, cuenta, categoría y descripción del texto original.</summary>

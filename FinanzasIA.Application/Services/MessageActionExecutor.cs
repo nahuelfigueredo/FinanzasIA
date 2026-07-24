@@ -21,17 +21,20 @@ public class MessageActionExecutor : IMessageActionExecutor
     private readonly ICategoriaService _categoriaService;
     private readonly ICuentaService _cuentaService;
     private readonly IAnalisisFinancieroService _analisisFinancieroService;
+    private readonly IPresupuestoService _presupuestoService;
 
     public MessageActionExecutor(
         IMovimientoService movimientoService,
         ICategoriaService categoriaService,
         ICuentaService cuentaService,
-        IAnalisisFinancieroService analisisFinancieroService)
+        IAnalisisFinancieroService analisisFinancieroService,
+        IPresupuestoService presupuestoService)
     {
         _movimientoService = movimientoService;
         _categoriaService = categoriaService;
         _cuentaService = cuentaService;
         _analisisFinancieroService = analisisFinancieroService;
+        _presupuestoService = presupuestoService;
     }
 
     public async Task<MensajeProcesadoResultDto> EjecutarAsync(MensajeInterpretadoDto interpretado, string? usuarioId, CancellationToken cancellationToken = default)
@@ -48,6 +51,7 @@ public class MessageActionExecutor : IMessageActionExecutor
             MessageIntent.UltimosMovimientos => await ResponderUltimosMovimientosAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ConsultaCategoria => await ResponderCategoriaAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.ConsultaPresupuesto => ResponderPresupuesto(interpretado),
+            MessageIntent.DefinirPresupuesto => await DefinirPresupuestoAsync(interpretado, usuarioId, cancellationToken),
             MessageIntent.Ayuda => ResponderAyuda(interpretado),
             MessageIntent.Saludo => ResponderSaludo(interpretado),
             _ => NoManejado(interpretado)
@@ -96,6 +100,10 @@ public class MessageActionExecutor : IMessageActionExecutor
             ? "Transferencia"
             : tipo == TipoMovimiento.Ingreso ? "Ingreso" : "Gasto";
 
+        var infoPresupuesto = tipo == TipoMovimiento.Egreso && interpretado.Intent != MessageIntent.Transferencia
+            ? await ArmarInfoPresupuestoAsync(categoria.Id, usuarioId, interpretado.Fecha, cancellationToken)
+            : string.Empty;
+
         return new MensajeProcesadoResultDto
         {
             Intent = interpretado.Intent,
@@ -108,8 +116,117 @@ public class MessageActionExecutor : IMessageActionExecutor
                 $"Monto: {Moneda(interpretado.Monto.Value)}\n" +
                 $"Categoría: {categoria.Nombre}\n" +
                 $"Cuenta: {cuenta?.Nombre ?? "Predeterminada"}\n" +
-                $"Fecha: {interpretado.Fecha:dd/MM/yyyy}"
+                $"Fecha: {interpretado.Fecha:dd/MM/yyyy}" +
+                infoPresupuesto
         };
+    }
+
+    /// <summary>
+    /// Consulta el presupuesto vigente de la categoría del gasto recién registrado y
+    /// arma el bloque informativo: gastado, disponible y % utilizado, con advertencia
+    /// al superar el 80% y detalle del exceso al superar el 100%.
+    /// </summary>
+    private async Task<string> ArmarInfoPresupuestoAsync(int categoriaId, string? usuarioId, DateTime fecha, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return string.Empty;
+        }
+
+        var estado = await _presupuestoService.GetEstadoAsync(usuarioId, categoriaId, fecha.Month, fecha.Year, cancellationToken);
+        if (estado is null)
+        {
+            return string.Empty;
+        }
+
+        var info =
+            $"\n\n📊 Presupuesto de {estado.CategoriaNombre}: {Moneda(estado.MontoMensual)}\n" +
+            $"Gastado: {Moneda(estado.GastoAcumulado)}\n" +
+            $"Disponible: {Moneda(estado.SaldoRestante)}\n" +
+            $"Utilizado: {estado.PorcentajeUtilizado:0.#}%";
+
+        if (estado.Superado)
+        {
+            info += $"\n🚨 ¡Superaste tu presupuesto! Te excediste en {Moneda(estado.MontoExcedido)}.";
+        }
+        else if (estado.PorcentajeUtilizado >= 80)
+        {
+            info += "\n⚠️ Atención: ya usaste más del 80% de tu presupuesto.";
+        }
+
+        return info;
+    }
+
+    /// <summary>
+    /// Crea o actualiza el presupuesto mensual de la categoría mencionada
+    /// (ej.: "Presupuesto supermercado 350000").
+    /// </summary>
+    private async Task<MensajeProcesadoResultDto> DefinirPresupuestoAsync(MensajeInterpretadoDto interpretado, string? usuarioId, CancellationToken cancellationToken)
+    {
+        if (interpretado.Monto is not > 0)
+        {
+            return new MensajeProcesadoResultDto
+            {
+                Intent = interpretado.Intent,
+                Manejado = true,
+                Exito = false,
+                Respuesta = "No pude identificar el monto del presupuesto. 🤔\n\nPodés escribir por ejemplo:\nPresupuesto supermercado 350000"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(interpretado.Categoria))
+        {
+            return new MensajeProcesadoResultDto
+            {
+                Intent = interpretado.Intent,
+                Manejado = true,
+                Exito = false,
+                Respuesta = "¿Para qué categoría querés el presupuesto? 🤔\n\nPodés escribir por ejemplo:\nMi presupuesto para comida es 500000"
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(usuarioId))
+        {
+            return new MensajeProcesadoResultDto
+            {
+                Intent = interpretado.Intent,
+                Manejado = true,
+                Exito = false,
+                Respuesta = "Necesito que tu número esté vinculado a una cuenta para guardar presupuestos."
+            };
+        }
+
+        var categoria = await ResolverCategoriaAsync(interpretado.Categoria, TipoMovimiento.Egreso, usuarioId, cancellationToken);
+        var hoy = DateTime.Today;
+        var existia = await _presupuestoService.GetVigenteAsync(usuarioId, categoria.Id, hoy.Month, hoy.Year, cancellationToken) is not null;
+        var presupuesto = await _presupuestoService.CrearOActualizarAsync(categoria.Id, interpretado.Monto.Value, hoy.Month, hoy.Year, usuarioId, cancellationToken);
+
+        var estado = await _presupuestoService.GetEstadoAsync(usuarioId, categoria.Id, hoy.Month, hoy.Year, cancellationToken);
+
+        var respuesta =
+            (existia ? "🔄 Presupuesto actualizado.\n\n" : "✅ Presupuesto creado.\n\n") +
+            $"Categoría: {categoria.Nombre}\n" +
+            $"Monto mensual: {Moneda(presupuesto.MontoMensual)}\n" +
+            $"Período: {hoy:MM/yyyy}";
+
+        if (estado is not null && estado.GastoAcumulado > 0)
+        {
+            respuesta +=
+                $"\n\nGastado hasta ahora: {Moneda(estado.GastoAcumulado)}\n" +
+                $"Disponible: {Moneda(estado.SaldoRestante)}\n" +
+                $"Utilizado: {estado.PorcentajeUtilizado:0.#}%";
+
+            if (estado.Superado)
+            {
+                respuesta += $"\n🚨 Ya superaste este presupuesto en {Moneda(estado.MontoExcedido)}.";
+            }
+            else if (estado.PorcentajeUtilizado >= 80)
+            {
+                respuesta += "\n⚠️ Ya usaste más del 80% de este presupuesto.";
+            }
+        }
+
+        return Exitoso(interpretado, respuesta);
     }
 
     /// <summary>

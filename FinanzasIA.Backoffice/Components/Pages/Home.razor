@@ -102,6 +102,63 @@ else
         </div>
     </div>
 
+    <div class="dashboard-panel mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <div>
+                <h4 class="mb-1"><span class="section-icon" aria-hidden="true">🎯</span> Estado de Presupuestos</h4>
+                <p class="text-secondary mb-0">Cómo venís contra tus límites del mes actual.</p>
+            </div>
+            <a class="report-pill" href="presupuestos">Administrar</a>
+        </div>
+
+        @if (_presupuestosEstado.Count == 0)
+        {
+            <div class="empty-state">
+                <div>🎯</div>
+                <strong>Sin presupuestos este mes</strong>
+                <span>Definí límites por categoría para controlar tus gastos.</span>
+                <a class="empty-action" href="presupuestos">➕ Crear presupuesto</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Categoría</th>
+                            <th class="text-end">Presupuesto</th>
+                            <th class="text-end">Gastado</th>
+                            <th class="text-end">Disponible</th>
+                            <th style="min-width:160px">% utilizado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var estado in _presupuestosEstado)
+                        {
+                            <tr>
+                                <td><strong>@estado.CategoriaNombre</strong></td>
+                                <td class="text-end">@estado.MontoMensual.ToString("C")</td>
+                                <td class="text-end">@estado.GastoAcumulado.ToString("C")</td>
+                                <td class="text-end @(estado.SaldoRestante < 0 ? "text-danger fw-bold" : null)">@estado.SaldoRestante.ToString("C")</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height:8px">
+                                            <div class="progress-bar @(estado.PorcentajeUtilizado >= 100 ? "bg-danger" : estado.PorcentajeUtilizado >= 80 ? "bg-warning" : "bg-success")"
+                                                 role="progressbar"
+                                                 style="width:@Math.Min((double)estado.PorcentajeUtilizado, 100)%"></div>
+                                        </div>
+                                        <span class="small text-secondary" style="min-width:44px">@estado.PorcentajeUtilizado.ToString("0.#")%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
     <div class="row g-4">
         <div class="col-xl-7">
             <div class="dashboard-panel h-100">
@@ -266,6 +323,7 @@ else
     private AnalisisFinancieroDto _analisis = new();
     private IReadOnlyCollection<CategoriaDto> _categorias = [];
     private IReadOnlyCollection<MovimientoDto> _movimientos = [];
+    private IReadOnlyCollection<PresupuestoEstadoDto> _presupuestosEstado = [];
     private PreferenceModel _preferences = new();
     private string _displayName = "Usuario";
     private bool _isLoading = true;
@@ -352,12 +410,14 @@ else
             var analisisTask = ApiClient.GetAnalisisIaAsync();
             var categoriasTask = ApiClient.GetCategoriasAsync();
             var movimientosTask = ApiClient.GetMovimientosAsync();
+            var presupuestosTask = ApiClient.GetEstadoPresupuestosAsync();
 
-            await Task.WhenAll(analisisTask, categoriasTask, movimientosTask);
+            await Task.WhenAll(analisisTask, categoriasTask, movimientosTask, presupuestosTask);
 
             _analisis = await analisisTask;
             _categorias = await categoriasTask;
             _movimientos = await movimientosTask;
+            _presupuestosEstado = await presupuestosTask;
         }
         catch (Exception ex)
         {
