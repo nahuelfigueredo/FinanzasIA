@@ -177,6 +177,9 @@ public class WhatsAppWebhookController : ControllerBase
                     continue;
                 }
 
+                // TODO: Log temporal de diagnóstico. Eliminar al terminar las pruebas.
+                _logger.LogInformation("MESSAGES recibido (JSON crudo): {Messages}", messages.GetRawText());
+
                 foreach (var message in messages.EnumerateArray())
                 {
                     if (!message.TryGetProperty("from", out var fromNode))
@@ -200,6 +203,12 @@ public class WhatsAppWebhookController : ControllerBase
                     _logger.LogInformation(
                         "Mensaje aceptado. Número: {From}, Texto: {Texto}, ImagenMediaId: {ImageId}",
                         from, incomingText, imageId);
+
+                    // TODO: Log temporal de diagnóstico. Eliminar al terminar las pruebas.
+                    _logger.LogInformation(
+                        "FROM recibido: {From} | BODY: {Body}",
+                        from,
+                        incomingText);
 
                     // Un fallo procesando un mensaje nunca debe abortar el batch ni
                     // devolver error al webhook (Meta reintentaría el payload completo).
