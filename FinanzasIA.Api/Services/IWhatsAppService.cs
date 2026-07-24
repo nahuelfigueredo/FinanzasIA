@@ -12,4 +12,7 @@ public interface IWhatsAppService
 
     /// <summary>Diagnóstico temporal: verifica la autenticación contra Meta Graph API.</summary>
     Task<(int StatusCode, string ResponseBody)> TestMetaAuthAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Inspecciona el AccessToken (debug_token) y diagnostica errores 190.</summary>
+    Task<object> InspectTokenAsync(CancellationToken cancellationToken = default);
 }

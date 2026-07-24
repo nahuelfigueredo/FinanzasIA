@@ -57,6 +57,111 @@ public class WhatsAppService : IWhatsAppService
         return ((int)response.StatusCode, responseBody);
     }
 
+    /// <summary>
+    /// Inspecciona el AccessToken con el endpoint debug_token de Graph API
+    /// (el token se inspecciona a sí mismo) y consulta el Phone Number ID.
+    /// Devuelve validez, vencimiento, permisos y el diagnóstico del error 190.
+    /// </summary>
+    public async Task<object> InspectTokenAsync(CancellationToken cancellationToken = default)
+    {
+        // 1) debug_token: el propio token puede inspeccionarse a sí mismo.
+        var debugUrl = $"https://graph.facebook.com/{_options.GraphApiVersion}/debug_token?input_token={Uri.EscapeDataString(_options.AccessToken)}";
+        using var debugRequest = new HttpRequestMessage(HttpMethod.Get, debugUrl);
+        debugRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.AccessToken);
+
+        using var debugResponse = await _httpClient.SendAsync(debugRequest, cancellationToken);
+        var debugBody = await debugResponse.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogInformation("InspectToken debug_token <- {Status}: {Body}", (int)debugResponse.StatusCode, debugBody);
+
+        bool? esValido = null;
+        string? tipoToken = null;
+        string? appId = null;
+        DateTime? expiraUtc = null;
+        List<string> permisos = [];
+        string? errorDebug = null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(debugBody);
+            if (doc.RootElement.TryGetProperty("data", out var data))
+            {
+                if (data.TryGetProperty("is_valid", out var v)) esValido = v.GetBoolean();
+                if (data.TryGetProperty("type", out var t)) tipoToken = t.GetString();
+                if (data.TryGetProperty("app_id", out var a)) appId = a.GetString();
+                if (data.TryGetProperty("expires_at", out var e) && e.TryGetInt64(out var unix) && unix > 0)
+                {
+                    expiraUtc = DateTimeOffset.FromUnixTimeSeconds(unix).UtcDateTime;
+                }
+                if (data.TryGetProperty("scopes", out var scopes) && scopes.ValueKind == JsonValueKind.Array)
+                {
+                    permisos = scopes.EnumerateArray().Select(s => s.GetString() ?? "").ToList();
+                }
+                if (data.TryGetProperty("error", out var err) && err.TryGetProperty("message", out var msg))
+                {
+                    errorDebug = msg.GetString();
+                }
+            }
+            else if (doc.RootElement.TryGetProperty("error", out var topError) &&
+                     topError.TryGetProperty("message", out var topMsg))
+            {
+                errorDebug = topMsg.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            errorDebug = "Respuesta de debug_token no es JSON válido.";
+        }
+
+        // 2) Consultar el Phone Number ID con el mismo token.
+        var (phoneStatus, phoneBody) = await TestMetaAuthAsync(cancellationToken);
+
+        // 3) Diagnóstico legible del motivo del 190.
+        string diagnostico;
+        if (esValido == false)
+        {
+            diagnostico = errorDebug is not null
+                ? $"El token NO es válido: {errorDebug}. Generá uno nuevo (permanente, de System User)."
+                : "El token NO es válido (revocado, vencido o mal copiado). Generá uno nuevo.";
+        }
+        else if (expiraUtc is not null && expiraUtc <= DateTime.UtcNow)
+        {
+            diagnostico = $"El token venció el {expiraUtc:yyyy-MM-dd HH:mm} UTC. Los tokens temporales de API Setup duran 24 hs; generá uno permanente con un System User.";
+        }
+        else if (esValido == true && phoneStatus == 401)
+        {
+            diagnostico = "El token es válido pero NO tiene acceso a este Phone Number ID: pertenece a otra app/WABA, o al System User no se le asignó el asset de la cuenta de WhatsApp.";
+        }
+        else if (esValido == true && !permisos.Contains("whatsapp_business_messaging"))
+        {
+            diagnostico = "El token es válido pero le falta el permiso whatsapp_business_messaging.";
+        }
+        else if (esValido == true && phoneStatus == 200)
+        {
+            diagnostico = "Token válido y con acceso al Phone Number ID. La autenticación está OK.";
+        }
+        else
+        {
+            diagnostico = "No se pudo determinar el estado del token; revisá los cuerpos de respuesta incluidos.";
+        }
+
+        return new
+        {
+            tokenValido = esValido,
+            tipoToken,
+            appId,
+            expiraUtc,
+            expiraEn = expiraUtc is null ? "nunca (token permanente)" : (expiraUtc <= DateTime.UtcNow ? "VENCIDO" : (expiraUtc.Value - DateTime.UtcNow).ToString(@"d\d\ h\h\ m\m")),
+            permisos,
+            tienePermisoMessaging = permisos.Contains("whatsapp_business_messaging"),
+            tienePermisoManagement = permisos.Contains("whatsapp_business_management"),
+            phoneNumberId = _options.PhoneNumberId,
+            consultaPhoneNumberStatus = phoneStatus,
+            consultaPhoneNumberBody = phoneBody,
+            debugTokenBody = debugBody,
+            diagnostico
+        };
+    }
+
     public async Task SendTextMessageAsync(string toPhoneNumber, string message, CancellationToken cancellationToken = default)
     {
         await SendTextMessageRawAsync(toPhoneNumber, message, cancellationToken);

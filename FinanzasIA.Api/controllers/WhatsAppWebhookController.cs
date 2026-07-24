@@ -69,18 +69,78 @@ public class WhatsAppWebhookController : ControllerBase
         });
     }
 
-    // TODO: Endpoint temporal de diagnóstico de autenticación contra Meta. Eliminar al terminar las pruebas.
+    // Diagnóstico del token configurado: expone solo longitud y extremos (nunca el token completo).
+    [HttpGet("token-info")]
+    public IActionResult TokenInfo()
+    {
+        var token = _options.AccessToken;
+        return Ok(new
+        {
+            longitud = token?.Length,
+            primeros4 = token?.Length >= 4 ? token[..4] : token,
+            ultimos4 = token?.Length >= 4 ? token[^4..] : token
+        });
+    }
+
+    // TODO: Endpoint temporal de diagnóstico. Eliminar al terminar las pruebas.
+    // Llama a debug_token de Graph API con el mismo AccessToken que usa WhatsAppService
+    // y devuelve validez, vencimiento, app y permisos (sin exponer el token).
+    [HttpGet("token-debug")]
+    public async Task<IActionResult> TokenDebug(
+        [FromServices] IHttpClientFactory httpClientFactory,
+        CancellationToken cancellationToken)
+    {
+        var token = _options.AccessToken?.Trim() ?? string.Empty;
+        var version = string.IsNullOrWhiteSpace(_options.GraphApiVersion) ? "v23.0" : _options.GraphApiVersion.Trim();
+        var url = $"https://graph.facebook.com/{version}/debug_token?input_token={Uri.EscapeDataString(token)}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var httpClient = httpClientFactory.CreateClient();
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("data", out var data))
+            {
+                bool? isValid = data.TryGetProperty("is_valid", out var v) ? v.GetBoolean() : null;
+                long? expiresAtUnix = data.TryGetProperty("expires_at", out var e) && e.TryGetInt64(out var unix) ? unix : null;
+                string? expiresAtUtc = expiresAtUnix is > 0
+                    ? DateTimeOffset.FromUnixTimeSeconds(expiresAtUnix.Value).UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+                    : expiresAtUnix == 0 ? "nunca (token permanente)" : null;
+
+                return Ok(new
+                {
+                    is_valid = isValid,
+                    expires_at = expiresAtUnix,
+                    expires_at_utc = expiresAtUtc,
+                    app_id = data.TryGetProperty("app_id", out var a) ? a.GetString() : null,
+                    scopes = data.TryGetProperty("scopes", out var s) && s.ValueKind == JsonValueKind.Array
+                        ? s.EnumerateArray().Select(x => x.GetString()).ToList()
+                        : null,
+                    granular_scopes = data.TryGetProperty("granular_scopes", out var g) ? g.Clone() : (object?)null
+                });
+            }
+
+            // Meta devolvió un error de nivel superior (token inválido para autenticar la llamada).
+            return StatusCode((int)response.StatusCode, doc.RootElement.Clone());
+        }
+        catch (JsonException)
+        {
+            return StatusCode((int)response.StatusCode, new { error = "Respuesta de debug_token no es JSON válido.", body });
+        }
+    }
+
+    // Diagnóstico de autenticación contra Meta: valida el token con debug_token,
+    // consulta el Phone Number ID y explica el motivo exacto de un error 190.
     [HttpGet("test-meta")]
     public async Task<IActionResult> TestMeta(CancellationToken cancellationToken)
     {
-        var (statusCode, responseBody) = await _whatsAppService.TestMetaAuthAsync(cancellationToken);
-
-        return new ContentResult
-        {
-            StatusCode = StatusCodes.Status200OK,
-            ContentType = "application/json",
-            Content = $"{{\"statusCode\":{statusCode},\"responseBody\":{JsonSerializer.Serialize(responseBody)}}}"
-        };
+        var resultado = await _whatsAppService.InspectTokenAsync(cancellationToken);
+        return Ok(resultado);
     }
 
     [HttpPost("webhook")]

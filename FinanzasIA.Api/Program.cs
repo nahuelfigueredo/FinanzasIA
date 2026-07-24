@@ -67,6 +67,26 @@ if (!string.IsNullOrWhiteSpace(openAiApiKey))
 
 var app = builder.Build();
 
+// TODO: Middleware temporal de diagnóstico. Eliminar al terminar las pruebas.
+// Va primero en el pipeline para registrar TODAS las requests a /api/whatsapp/*,
+// incluso las que después rechace ApiKeyMiddleware.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/api/whatsapp"))
+    {
+        var logger = context.RequestServices
+            .GetRequiredService<ILogger<Program>>();
+
+        logger.LogInformation(
+            "WHATSAPP REQUEST: {Method} {Path}{Query}",
+            context.Request.Method,
+            context.Request.Path,
+            context.Request.QueryString);
+    }
+
+    await next();
+});
+
 // Swagger habilitado también en Production (temporal, para verificar el deploy en Render).
 app.UseSwagger();
 app.UseSwaggerUI();
